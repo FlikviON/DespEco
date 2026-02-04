@@ -1,10 +1,11 @@
 import main_menu
 
 
-def main():
+def main() -> None:
+    """Starts the game"""
     is_running = True
     while is_running:
-        main_menu.main_menu()
+        main_menu.open_main_menu()
 
 
 if __name__ == "__main__":

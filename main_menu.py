@@ -14,7 +14,7 @@ screen = pygame.display.set_mode((UserConfig.screen_width, UserConfig.screen_hei
 pygame.display.set_caption("Game menu")
 
 
-def main_menu():
+def open_main_menu() -> None:
     button_width, button_height = 260, 70
 
     singleplayer_button = ui_elements.Button(
@@ -69,16 +69,34 @@ def main_menu():
 
     clock = pygame.time.Clock()
 
-    while True:
+    is_running = True
+    while is_running:
         background = ui_elements.MenuBackground.load_background_image()
         screen.blit(background, (0, 0))
 
         mouse_pos = pygame.mouse.get_pos()
-        mouse_click = False
+
+        title = ui_elements.Fonts.title_font.render("DespEco", True, ui_elements.Colors.dark_golden)
+        title_rect = title.get_rect(center=(UserConfig.screen_width // 2, UserConfig.screen_height // 6))
+        screen.blit(title, title_rect)
+
+        singleplayer_button.check_hover(mouse_pos)
+        multiplayer_button.check_hover(mouse_pos)
+        redactor_button.check_hover(mouse_pos)
+        settings_button.check_hover(mouse_pos)
+        exit_button.check_hover(mouse_pos)
+
+        singleplayer_button.draw(screen)
+        multiplayer_button.draw(screen)
+        redactor_button.draw(screen)
+        settings_button.draw(screen)
+        exit_button.draw(screen)
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
+
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
                     mouse_click = True
@@ -98,22 +116,6 @@ def main_menu():
                     if exit_button.is_clicked(mouse_pos, mouse_click):
                         pygame.quit()
                         sys.exit()
-
-        singleplayer_button.check_hover(mouse_pos)
-        multiplayer_button.check_hover(mouse_pos)
-        redactor_button.check_hover(mouse_pos)
-        settings_button.check_hover(mouse_pos)
-        exit_button.check_hover(mouse_pos)
-
-        singleplayer_button.draw(screen)
-        multiplayer_button.draw(screen)
-        redactor_button.draw(screen)
-        settings_button.draw(screen)
-        exit_button.draw(screen)
-
-        title = ui_elements.Fonts.title_font.render("DespEco", True, ui_elements.Colors.dark_golden)
-        title_rect = title.get_rect(center=(UserConfig.screen_width // 2, UserConfig.screen_height // 6))
-        screen.blit(title, title_rect)
 
         pygame.display.flip()
         clock.tick(60)

@@ -8,7 +8,7 @@ class UserConfig:
     screen_height: int = 600
 
 
-def initialize_config():
+def initialize_config() -> None:
     with open("user_config.json") as file:
         user_config = json.load(file)
         UserConfig.screen_width = user_config["screen"]["width"]

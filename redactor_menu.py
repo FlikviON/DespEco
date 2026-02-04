@@ -6,11 +6,8 @@ from config import UserConfig
 from create_map_menu import open_create_map_menu
 
 
-def open_redactor_menu(screen):
+def open_redactor_menu(screen: pygame.Surface) -> None:
     button_width, button_height = 260, 70
-
-    background = ui_elements.MenuBackground.load_background_image()
-    screen.blit(background, (0, 0))
 
     create_map_button = ui_elements.Button(
         UserConfig.screen_width // 2 - button_width // 2,
@@ -46,8 +43,14 @@ def open_redactor_menu(screen):
 
     is_running = True
     while is_running:
+        background = ui_elements.MenuBackground.load_background_image()
+        screen.blit(background, (0, 0))
+
         mouse_pos = pygame.mouse.get_pos()
-        mouse_click = False
+
+        title = ui_elements.Fonts.title_font.render("Map Redactor", True, ui_elements.Colors.dark_golden)
+        title_rect = title.get_rect(center=(UserConfig.screen_width // 2, UserConfig.screen_height // 6))
+        screen.blit(title, title_rect)
 
         create_map_button.check_hover(mouse_pos)
         load_map_button.check_hover(mouse_pos)
@@ -78,10 +81,6 @@ def open_redactor_menu(screen):
 
                     if back_button.is_clicked(mouse_pos, mouse_click):
                         is_running = False
-
-            title = ui_elements.Fonts.title_font.render("Map Redactor", True, ui_elements.Colors.dark_golden)
-            title_rect = title.get_rect(center=(UserConfig.screen_width // 2, UserConfig.screen_height // 6))
-            screen.blit(title, title_rect)
 
             pygame.display.flip()
             clock.tick(60)
