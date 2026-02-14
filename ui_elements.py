@@ -2,11 +2,12 @@ import pygame
 from dataclasses import dataclass
 from pathlib import Path
 
-from config import UserConfig
+from config import user_config
 
 
 if not pygame.get_init():
     pygame.init()
+
 
 @dataclass
 class Colors:
@@ -31,6 +32,21 @@ class Colors:
     red: tuple[int, int, int] = (255, 100, 100)
     hover_red: tuple[int, int, int] = (235, 80, 80)
 
+    grass_color: tuple[int, int, int] = (34, 139, 34)
+    grass_darker_color: tuple[int, int, int] = (14, 119, 14)
+    forest_color: tuple[int, int, int] = (0, 100, 0)
+    forest_darker_color: tuple[int, int, int] = (0, 80, 0)
+    mountain_color: tuple[int, int, int] = (139, 137, 137)
+    mountain_darker_color: tuple[int, int, int] = (119, 117, 117)
+    water_color: tuple[int, int, int] = (30, 144, 255)
+    water_darker_color: tuple[int, int, int] = (10, 124, 235)
+    sand_color: tuple[int, int, int] = (238, 214, 175)
+    sand_darker_color: tuple[int, int, int] = (218, 194, 155)
+    snow_color: tuple[int, int, int] = (255, 250, 250)
+    snow_darker_color: tuple[int, int, int] = (235, 230, 230)
+    swamp_color: tuple[int, int, int] = (0, 60, 30)
+    swamp_darker_color: tuple[int, int, int] = (0, 40, 30)
+
 
 @dataclass
 class Fonts:
@@ -38,8 +54,12 @@ class Fonts:
     title_font = pygame.font.SysFont('tahoma', 90, bold=True)
 
 
+import pygame
+
+
 class Button:
-    def __init__(self, x: float, y: float, width: float, height: float, text: str, color: tuple[int, int, int], hover_color: tuple[int, int, int]) -> None:
+    def __init__(self, x: float, y: float, width: float, height: float, text: str,
+                 color: tuple[int, int, int], hover_color: tuple[int, int, int]) -> None:
         self.rect: pygame.Rect = pygame.Rect(x, y, width, height)
         self.text: str = text
         self.color: tuple[int, int, int] = color
@@ -49,13 +69,37 @@ class Button:
     def draw(self, screen: pygame.Surface) -> None:
         color = self.hover_color if self.is_hovered else self.color
 
-        pygame.draw.rect(screen, color, self.rect, border_radius = 12)
-        pygame.draw.rect(screen, Colors.black, self.rect, 2, border_radius = 12)
+        pygame.draw.rect(screen, color, self.rect, border_radius=12)
+        pygame.draw.rect(screen, Colors.black, self.rect, 2, border_radius=12)
 
         text_surface = Fonts.font1.render(self.text, True, Colors.black)
-        text_rect = text_surface.get_rect(center = self.rect.center)
-
+        text_rect = text_surface.get_rect(center=self.rect.center)
         screen.blit(text_surface, text_rect)
+
+    def check_hover(self, pos: tuple[int, int]) -> bool:
+        self.is_hovered = self.rect.collidepoint(pos)
+        return self.is_hovered
+
+    def is_clicked(self, pos: tuple[int, int], click: bool) -> bool:
+        return self.rect.collidepoint(pos) and click
+
+
+class ImagedButton:
+    def __init__(self, x: float, y: float, width: float, height: float,
+                 hover_color: tuple[int, int, int],
+                 image_path: str = None) -> None:
+        self.rect: pygame.Rect = pygame.Rect(x, y, width, height)
+        self.hover_color: tuple[int, int, int] = hover_color
+        self.is_hovered: bool = False
+
+        self.image = pygame.image.load(image_path).convert_alpha()
+        self.image = pygame.transform.scale(self.image, (width - 10, height - 10))
+        self.image_rect = self.image.get_rect(center=self.rect.center)
+
+    def draw(self, screen: pygame.Surface) -> None:
+        pygame.draw.rect(screen, Colors.black, self.rect)
+        pygame.draw.rect(screen, Colors.black, self.rect, 2)
+        screen.blit(self.image, self.image_rect)
 
     def check_hover(self, pos: tuple[int, int]) -> bool:
         self.is_hovered = self.rect.collidepoint(pos)
@@ -68,14 +112,14 @@ class Button:
 class MenuBackground:
     @staticmethod
     def load_background_image() -> pygame.Surface:
-        background_image_path = Path("assets/images/background_image.png")
+        background_image_path = Path("Assets/Images/background_image.png")
         background = pygame.image.load(background_image_path).convert()
-        background = pygame.transform.scale(background, (UserConfig.screen_width, UserConfig.screen_height))
+        background = pygame.transform.scale(background, (user_config.screen_width, user_config.screen_height))
         return background
 
     @staticmethod
     def create_dark_overlay(screen: pygame.Surface, alpha: int=128):
-        overlay = pygame.Surface((UserConfig.screen_width, UserConfig.screen_height), pygame.SRCALPHA)
+        overlay = pygame.Surface((user_config.screen_width, user_config.screen_height), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, alpha))
         screen.blit(overlay, (0, 0))
         return screen
@@ -164,6 +208,7 @@ class InputBox:
 class Dropdown:
     def __init__(self, x: float, y: float, width: float, height: float, options: list, default_index: int=3, font_size: int=32, visible_items: int=5) -> None:
         self.rect: pygame.Rect = pygame.Rect(x, y, width, height)
+        self.item_rect: pygame.Rect = pygame.Rect(x, y + height * 4, width, height)
         self.options: list = options
         self.selected_index: int = default_index
         self.is_open: bool = False
@@ -207,10 +252,11 @@ class Dropdown:
                             self.rect.width - (self.scrollbar_width if len(self.options) > self.visible_items else 0),
                             self.rect.height
                         )
+                        self.item_rect = item_rect
                         if item_rect.collidepoint(mouse_pos):
                             self.selected_index = global_index
                             self.is_open = False
-                            self.scroll_offset = 0  # Сбрасываем скролл при выборе
+                            self.scroll_offset = 0
                             return True
 
                     if self.scrollbar_rect and self.scrollbar_rect.collidepoint(mouse_pos):

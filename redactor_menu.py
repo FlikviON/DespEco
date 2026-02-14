@@ -2,7 +2,7 @@ import pygame
 import sys
 
 import ui_elements
-from config import UserConfig
+from config import user_config
 from create_map_menu import open_create_map_menu
 
 
@@ -10,8 +10,8 @@ def open_redactor_menu(screen: pygame.Surface) -> None:
     button_width, button_height = 260, 70
 
     create_map_button = ui_elements.Button(
-        UserConfig.screen_width // 2 - button_width // 2,
-        UserConfig.screen_height // 2 - 40,
+        user_config.screen_width // 2 - button_width // 2,
+        user_config.screen_height // 2 - 40,
         button_width,
         button_height,
         "Create Map",
@@ -20,8 +20,8 @@ def open_redactor_menu(screen: pygame.Surface) -> None:
     )
 
     load_map_button = ui_elements.Button(
-        UserConfig.screen_width // 2 - button_width // 2,
-        UserConfig.screen_height // 2 + 60,
+        user_config.screen_width // 2 - button_width // 2,
+        user_config.screen_height // 2 + 60,
         button_width,
         button_height,
         "Load Map",
@@ -30,8 +30,8 @@ def open_redactor_menu(screen: pygame.Surface) -> None:
     )
 
     back_button = ui_elements.Button(
-        UserConfig.screen_width // 2 - button_width // 2,
-        UserConfig.screen_height // 2 + 160,
+        user_config.screen_width // 2 - button_width // 2,
+        user_config.screen_height // 2 + 160,
         button_width,
         button_height,
         "Back",
@@ -49,7 +49,7 @@ def open_redactor_menu(screen: pygame.Surface) -> None:
         mouse_pos = pygame.mouse.get_pos()
 
         title = ui_elements.Fonts.title_font.render("Map Redactor", True, ui_elements.Colors.dark_golden)
-        title_rect = title.get_rect(center=(UserConfig.screen_width // 2, UserConfig.screen_height // 6))
+        title_rect = title.get_rect(center=(user_config.screen_width // 2, user_config.screen_height // 6))
         screen.blit(title, title_rect)
 
         create_map_button.check_hover(mouse_pos)

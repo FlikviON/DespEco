@@ -2,7 +2,8 @@ import pygame
 import sys
 
 import ui_elements
-from config import UserConfig
+import start_empty_map
+from config import user_config
 
 
 def open_create_map_menu(screen: pygame.Surface) -> None:
@@ -11,8 +12,8 @@ def open_create_map_menu(screen: pygame.Surface) -> None:
     dropdown_options = [f"{16 * i}x{16 * i}" for i in range(1, 65)]
 
     map_size_dropdown = ui_elements.Dropdown(
-        UserConfig.screen_width // 2 - dropdown_width // 2,
-        UserConfig.screen_height // 2 - 120,
+        user_config.screen_width // 2 - dropdown_width // 2,
+        user_config.screen_height // 2 - 120,
         dropdown_width,
         dropdown_height,
         dropdown_options,
@@ -21,8 +22,8 @@ def open_create_map_menu(screen: pygame.Surface) -> None:
     )
 
     create_button = ui_elements.Button(
-        UserConfig.screen_width // 2 - button_width // 2,
-        UserConfig.screen_height // 2 + 100,
+        user_config.screen_width // 2 - button_width // 2,
+        user_config.screen_height // 2 + 100,
         button_width,
         button_height,
         "Create Map",
@@ -31,8 +32,8 @@ def open_create_map_menu(screen: pygame.Surface) -> None:
     )
 
     back_button = ui_elements.Button(
-        UserConfig.screen_width // 2 - button_width // 2,
-        UserConfig.screen_height // 2 + 200,
+        user_config.screen_width // 2 - button_width // 2,
+        user_config.screen_height // 2 + 200,
         button_width,
         button_height,
         "Back",
@@ -50,7 +51,7 @@ def open_create_map_menu(screen: pygame.Surface) -> None:
         mouse_pos = pygame.mouse.get_pos()
 
         title = ui_elements.Fonts.title_font.render("Create New Map", True, ui_elements.Colors.dark_golden)
-        title_rect = title.get_rect(center=(UserConfig.screen_width // 2, UserConfig.screen_height // 6))
+        title_rect = title.get_rect(center=(user_config.screen_width // 2, user_config.screen_height // 6))
         screen.blit(title, title_rect)
 
         create_button.check_hover(mouse_pos)
@@ -75,8 +76,8 @@ def open_create_map_menu(screen: pygame.Surface) -> None:
                     map_size_dropdown.handle_event(event)
 
                     if create_button.is_clicked(mouse_pos, mouse_click):
-                        map_size = map_size_dropdown.get_selected_value()
-                        ...
+                        width = height = map_size_dropdown.get_selected_value()
+                        start_empty_map.start_game(width, height)
 
                     elif back_button.is_clicked(mouse_pos, mouse_click):
                         is_running = False

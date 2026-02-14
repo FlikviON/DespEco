@@ -1,16 +1,13 @@
 import pygame
 import sys
 
-import config
 import ui_elements
 from redactor_menu import open_redactor_menu
-from config import UserConfig
+from config import user_config
 
-
-config.initialize_config()
 
 pygame.init()
-screen = pygame.display.set_mode((UserConfig.screen_width, UserConfig.screen_height))
+screen = pygame.display.set_mode((user_config.screen_width, user_config.screen_height))
 pygame.display.set_caption("Game menu")
 
 
@@ -18,8 +15,8 @@ def open_main_menu() -> None:
     button_width, button_height = 260, 70
 
     singleplayer_button = ui_elements.Button(
-        UserConfig.screen_width // 2 - button_width // 2,
-        UserConfig.screen_height // 3 - 40,
+        user_config.screen_width // 2 - button_width // 2,
+        user_config.screen_height // 3 - 40,
         button_width,
         button_height,
         "Singleplayer",
@@ -28,8 +25,8 @@ def open_main_menu() -> None:
     )
 
     multiplayer_button = ui_elements.Button(
-        UserConfig.screen_width // 2 - button_width // 2,
-        UserConfig.screen_height // 3 + 50,
+        user_config.screen_width // 2 - button_width // 2,
+        user_config.screen_height // 3 + 50,
         button_width,
         button_height,
         "Multiplayer",
@@ -38,8 +35,8 @@ def open_main_menu() -> None:
     )
 
     redactor_button = ui_elements.Button(
-        UserConfig.screen_width // 2 - button_width // 2,
-        UserConfig.screen_height // 3 + 140,
+        user_config.screen_width // 2 - button_width // 2,
+        user_config.screen_height // 3 + 140,
         button_width,
         button_height,
         "Map Redactor",
@@ -48,8 +45,8 @@ def open_main_menu() -> None:
     )
 
     settings_button = ui_elements.Button(
-        UserConfig.screen_width // 2 - button_width // 2,
-        UserConfig.screen_height // 3 + 230,
+        user_config.screen_width // 2 - button_width // 2,
+        user_config.screen_height // 3 + 230,
         button_width,
         button_height,
         "Settings",
@@ -58,8 +55,8 @@ def open_main_menu() -> None:
     )
 
     exit_button = ui_elements.Button(
-        UserConfig.screen_width // 2 - button_width // 2,
-        UserConfig.screen_height // 3 + 320,
+        user_config.screen_width // 2 - button_width // 2,
+        user_config.screen_height // 3 + 320,
         button_width,
         button_height,
         "Quit game",
@@ -77,7 +74,7 @@ def open_main_menu() -> None:
         mouse_pos = pygame.mouse.get_pos()
 
         title = ui_elements.Fonts.title_font.render("DespEco", True, ui_elements.Colors.dark_golden)
-        title_rect = title.get_rect(center=(UserConfig.screen_width // 2, UserConfig.screen_height // 6))
+        title_rect = title.get_rect(center=(user_config.screen_width // 2, user_config.screen_height // 6))
         screen.blit(title, title_rect)
 
         singleplayer_button.check_hover(mouse_pos)
