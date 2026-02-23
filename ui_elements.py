@@ -31,6 +31,7 @@ class Colors:
 
     red: tuple[int, int, int] = (255, 100, 100)
     hover_red: tuple[int, int, int] = (235, 80, 80)
+    dark_red: tuple[int, int, int] = (255, 0, 0)
 
     grass_color: tuple[int, int, int] = (34, 139, 34)
     grass_darker_color: tuple[int, int, int] = (14, 119, 14)
@@ -52,9 +53,6 @@ class Colors:
 class Fonts:
     font1 = pygame.font.SysFont('tahoma', 32, bold = True)
     title_font = pygame.font.SysFont('tahoma', 90, bold=True)
-
-
-import pygame
 
 
 class Button:
@@ -86,20 +84,21 @@ class Button:
 
 class ImagedButton:
     def __init__(self, x: float, y: float, width: float, height: float,
-                 hover_color: tuple[int, int, int],
-                 image_path: str = None) -> None:
+                 image_path: str = None,
+                 hover_image_path: str = None) -> None:
         self.rect: pygame.Rect = pygame.Rect(x, y, width, height)
-        self.hover_color: tuple[int, int, int] = hover_color
         self.is_hovered: bool = False
+        self.border_color: tuple[int, int, int] = Colors.black
 
         self.image = pygame.image.load(image_path).convert_alpha()
         self.image = pygame.transform.scale(self.image, (width - 10, height - 10))
+        self.hover_image = pygame.image.load(hover_image_path).convert_alpha()
+        self.hover_image = pygame.transform.scale(self.hover_image, (width - 10, height - 10))
         self.image_rect = self.image.get_rect(center=self.rect.center)
 
     def draw(self, screen: pygame.Surface) -> None:
-        pygame.draw.rect(screen, Colors.black, self.rect)
-        pygame.draw.rect(screen, Colors.black, self.rect, 2)
-        screen.blit(self.image, self.image_rect)
+        pygame.draw.rect(screen, self.border_color, self.rect)
+        screen.blit(self.image if not self.is_hovered else self.hover_image, self.image_rect)
 
     def check_hover(self, pos: tuple[int, int]) -> bool:
         self.is_hovered = self.rect.collidepoint(pos)
@@ -126,7 +125,7 @@ class MenuBackground:
 
 
 class InputBox:
-    def __init__(self, x: float, y: float, width: float, height: float, label: str="", font_size: int=32, max_length: int=10) -> None:
+    def __init__(self, x: float, y: float, width: float, height: float, label: str="", font_size: int=28, max_length: int=10) -> None:
         self.rect: pygame.Rect = pygame.Rect(x, y, width, height)
         self.label: str = label
         self.text: str = ""
@@ -141,7 +140,6 @@ class InputBox:
 
         self.cursor_visible: bool = True
         self.cursor_timer: float = 0
-        self.numeric_only: bool = True
 
     def handle_event(self, event: pygame.Event) -> None:
         if event.type == pygame.MOUSEBUTTONDOWN:
@@ -162,7 +160,7 @@ class InputBox:
             elif event.key == pygame.K_BACKSPACE:
                 self.text = self.text[:-1]
             else:
-                if event.unicode.isdigit() and len(self.text) < self.max_length:
+                if len(self.text) < self.max_length:
                     self.text += event.unicode
 
     def update(self) -> None:

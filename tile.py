@@ -69,6 +69,8 @@ class Tile:
         self.x: int = x
         self.y: int = y
         self.type: str = tile_type
+        self.stored_flag: str | None = None
+        self.stored_resource: str | None = None
 
         self.passable: bool = True
         self.buildable: bool = True
@@ -145,12 +147,26 @@ class Tile:
             return
 
         tile_rect = pygame.Rect(screen_left, screen_top, screen_w, screen_h)
-
-        if self.type in TEXTURES:
-            texture = _get_scaled_texture(TEXTURES[self.type], screen_w)
-            surface.blit(texture, (screen_left, screen_top))
+        if self.stored_flag and self.type != "water":
+            row_texture = f"Assets/TilesWithFlags/{self.type}_with_{self.stored_flag}.png"
+        elif self.stored_resource:
+            tile_type2resource = {"food": {"grass": "wheat", "mountain": "deer", "sand": "сactus", "snow": "wheat", "swamp": "berries", "water": None},
+                 "wood": {"grass": "tree", "mountain": "tree", "sand": "tree", "snow": "tree", "swamp": "tree", "water": None},
+                 "stone": {"grass": "stone", "mountain": "stone", "sand": "stone", "snow": "stone", "swamp": "stone", "water": None},
+                 "copper": {"grass": "copper", "mountain": "copper", "sand": "copper", "snow": "copper", "swamp": "copper", "water": None},
+                 "iron": {"grass": "iron", "mountain": "iron", "sand": "iron", "snow": "iron", "swamp": "iron", "water": None},
+                 "silver": {"grass": "silver", "mountain": None, "sand": "silver", "snow": "silver", "swamp": "silver", "water": None},
+                 "gold": {"grass": "gold", "mountain": "gold", "sand": "gold", "snow": "gold", "swamp": "gold", "water": None}}
+            view = tile_type2resource[self.stored_resource][self.type]
+            if view is None:
+                row_texture = TEXTURES[self.type]
+            else:
+                row_texture = f"Assets/TilesWithResources/{self.type}_with_{view}.png"
         else:
-            pygame.draw.rect(surface, self.get_color(), tile_rect)
+            row_texture = TEXTURES[self.type]
+
+        texture = _get_scaled_texture(row_texture, screen_w)
+        surface.blit(texture, (screen_left, screen_top))
 
         if self.selected:
             pygame.draw.rect(surface, YELLOW, tile_rect, max(1, int(3 * camera.zoom)))
