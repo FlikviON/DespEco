@@ -23,12 +23,12 @@ COLORS = {
 }
 
 TEXTURES = {
-    "grass": "Assets/Tiles/grass.png",
-    "mountain": "Assets/Tiles/mountain.png",
-    "water": "Assets/Tiles/water.png",
-    "sand": "Assets/Tiles/sand.png",
-    "snow": "Assets/Tiles/snow.png",
-    "swamp": "Assets/Tiles/swamp.png",
+    "grass": "Assets/Tiles/Light/grass.png",
+    "mountain": "Assets/Tiles/Light/mountain.png",
+    "water": "Assets/Tiles/Light/water.png",
+    "sand": "Assets/Tiles/Light/sand.png",
+    "snow": "Assets/Tiles/Light/snow.png",
+    "swamp": "Assets/Tiles/Light/swamp.png",
 }
 
 
@@ -74,8 +74,6 @@ class Tile:
 
         self.passable: bool = True
         self.buildable: bool = True
-        self.resources: dict = {}
-        self.defense_bonus: int = 0
 
         self.selected: bool = False
         self.highlighted: bool = False
@@ -87,13 +85,12 @@ class Tile:
 
     def _set_properties(self) -> None:
         properties = {
-            "grass": {"passable": True, "buildable": True, "defense_bonus": 0},
-            "mountain": {"passable": False, "buildable": False, "defense_bonus": 3},
-            "water": {"passable": False, "buildable": False, "defense_bonus": 0},
-            "sand": {"passable": True, "buildable": True, "defense_bonus": -1},
-            "snow": {"passable": True, "buildable": False, "defense_bonus": 1},
-            "swamp": {"passable": True, "buildable": False, "defense_bonus": -2},
-            "forest": {"passable": True, "buildable": False, "defense_bonus": 1},
+            "grass": {"passable": True, "buildable": True},
+            "mountain": {"passable": True, "buildable": True},
+            "water": {"passable": False, "buildable": False},
+            "sand": {"passable": True, "buildable": True},
+            "snow": {"passable": True, "buildable": True},
+            "swamp": {"passable": True, "buildable": True},
         }
 
         if self.type not in properties:
@@ -101,7 +98,6 @@ class Tile:
 
         self.passable = properties[self.type]["passable"]
         self.buildable = properties[self.type]["buildable"]
-        self.defense_bonus = properties[self.type]["defense_bonus"]
 
     def get_color(self) -> tuple[int, int, int]:
         base_color = COLORS.get(self.type, WHITE)

@@ -15,10 +15,13 @@ class Colors:
     black: tuple[int, int, int] = (0, 0, 0)
 
     gray: tuple[int, int, int] = (200, 200, 200)
+    gray1: tuple[int, int, int] = (100, 100, 100)
     light_gray: tuple[int, int, int] = (220, 220, 220)
     lighter_gray: tuple[int, int, int] = (211, 211, 211)
     dark_gray: tuple[int, int, int] = (169, 169, 169)
+    dark_gray1: tuple[int, int, int] = (50, 50, 50)
 
+    green: tuple[int, int, int] = (0, 255, 0)
     light_green: tuple[int, int, int] = (100, 255, 100)
     light_green1: tuple[int, int, int] = (152, 251, 152)
     light_green2: tuple[int, int, int] = (118, 212, 118)
@@ -27,11 +30,15 @@ class Colors:
     dark_golden: tuple[int, int, int] = (184, 134, 11)
 
     blue: tuple[int, int, int] = (100, 150, 255)
+    blue1: tuple[int, int, int] = (0, 0, 255)
     hover_blue: tuple[int, int, int] = (80, 130, 235)
 
     red: tuple[int, int, int] = (255, 100, 100)
+    red1: tuple[int, int, int] = (255, 0, 0)
     hover_red: tuple[int, int, int] = (235, 80, 80)
     dark_red: tuple[int, int, int] = (255, 0, 0)
+
+    yellow: tuple[int, int, int] = (255, 255, 0)
 
     grass_color: tuple[int, int, int] = (34, 139, 34)
     grass_darker_color: tuple[int, int, int] = (14, 119, 14)
@@ -52,6 +59,7 @@ class Colors:
 @dataclass
 class Fonts:
     font1 = pygame.font.SysFont('tahoma', 32, bold = True)
+    font2 = pygame.font.SysFont('tahoma', 22, bold = True)
     title_font = pygame.font.SysFont('tahoma', 90, bold=True)
 
 
@@ -153,7 +161,9 @@ class InputBox:
             self.color = self.active_color if self.active else Colors.light_gray
 
         if event.type == pygame.KEYDOWN and self.active:
-            if event.key == pygame.K_RETURN:
+            if event.key == pygame.K_TAB:
+                pass
+            elif event.key == pygame.K_RETURN:
                 self.active = False
             elif event.key == pygame.K_ESCAPE:
                 self.active = False
