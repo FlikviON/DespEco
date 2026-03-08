@@ -1,19 +1,26 @@
+import math
+
 from PIL import Image
 
 
 class MinimapFormer:
     def __init__(self) -> None:
         self.game_map: list[list[int]] | None = None
-        self.types2colors: dict = {0: (112, 134, 50), 1: (75, 90, 112), 2: (40, 148, 170), 3: (240, 200, 135), 4: (200, 200, 200), 5: (92, 86, 60)}
+        self.types2colors: dict = {10: (112, 134, 50), 11: (75, 90, 112), 12: (40, 148, 170), 13: (240, 200, 135), 14: (200, 200, 200), 15: (92, 86, 60)}
 
     def draw_minimap(self, game_map: list[list[int]]) -> Image:
         self.game_map = game_map
         width = height = len(self.game_map)
-        image = Image.new("RGB", (width, height), color = "black")
+
+        receptive_field_x = math.floor(width / 200) if width > 200 else 1
+        receptive_field_y = math.floor(height / 80) if height > 200 else 1
+
+        image = Image.new("RGB", (width // receptive_field_x + 1, height // receptive_field_y + 1), color = "black")
         pixels = image.load()
-        for x in range(width):
-            for y in range(height):
-                pixels[x, y] = self.types2colors[self.game_map[y][x]]
+
+        for x in range(0, width, receptive_field_x):
+            for y in range(0, height, receptive_field_y):
+                pixels[x // receptive_field_x, y // receptive_field_y] = self.types2colors[int(str(self.game_map[y][x])[:2])]
         return image
 
     @staticmethod
@@ -28,11 +35,3 @@ class MinimapFormer:
         img = self.draw_minimap(game_map)
         img = self.resize_minimap(img)
         self.save_minimap(img)
-
-'''
-minmap = [[1, 1, 1], [2, 2, 1], [3, 5, 5]]
-mapa = MinimapFormer(minmap)
-mapula = mapa.draw_minimap()
-mapula = mapa.resize_minimap(mapula)
-mapa.save_minimap(mapula)
-'''

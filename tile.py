@@ -65,12 +65,15 @@ def _get_scaled_texture(path: str, size: int) -> pygame.Surface:
 
 
 class Tile:
-    def __init__(self, x: int, y: int, tile_type: str = "grass") -> None:
+    def __init__(self, x: int, y: int,
+                 tile_type: str = "grass",
+                 stored_resource: str | None = None,
+                 stored_flag: str | None = None) -> None:
         self.x: int = x
         self.y: int = y
         self.type: str = tile_type
-        self.stored_flag: str | None = None
-        self.stored_resource: str | None = None
+        self.stored_resource: str | None = stored_resource
+        self.stored_flag: str | None = stored_flag
 
         self.passable: bool = True
         self.buildable: bool = True

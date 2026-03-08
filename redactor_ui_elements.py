@@ -1,4 +1,5 @@
 import pygame
+
 import ui_elements
 from config import user_config
 
@@ -23,13 +24,14 @@ save_map_button = ui_elements.Button(
     10,
     user_config.screen_height // 2 - 100,
     button_width + 100,
-    button_height - 10,
+    button_height * 0.8,
     "Save Map",
     (255, 127, 80),
-    ui_elements.Colors.grass_darker_color,
+(233, 105, 58)
 )
 
-map_name_input_box = ui_elements.InputBox(10,
+map_name_input_box = ui_elements.InputBox(
+    10,
     user_config.screen_height // 2 - 200,
     dropdown_width * 1.5,
     dropdown_height,
@@ -252,4 +254,26 @@ back_tool_button = ui_elements.ImagedButton(
     button_height,
     image_path="Assets/ToolsButtons/Light/back_tool.png",
     hover_image_path="Assets/ToolsButtons/Dark/back_tool.png"
+)
+
+brush_tool_button = ui_elements.ImagedButton(
+    user_config.screen_width // 2 - button_width // 2 - 768,
+    user_config.screen_height // 2 + 290,
+    button_width,
+    button_height,
+    image_path="Assets/ToolsButtons/Light/brush_tool.png",
+    hover_image_path="Assets/ToolsButtons/Dark/brush_tool.png"
+)
+
+brush_size_slider = ui_elements.VerticalSlider(
+    user_config.screen_width * 0.14,
+    user_config.screen_height * 0.03,
+    width=20,
+    height=1000,
+    min_val=0,
+    max_val=50,
+    start_val=1,
+    step=2,
+    track_color=(200, 191, 231),
+    thumb_color=ui_elements.Colors.blue
 )

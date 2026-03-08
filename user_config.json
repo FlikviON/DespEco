@@ -3,5 +3,9 @@
   {
     "width": 1680,
     "height": 1050
+  },
+  "redactor":
+  {
+    "max_last_actions_len": 64
   }
 }

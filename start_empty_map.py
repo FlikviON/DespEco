@@ -1,11 +1,12 @@
-import pygame
 import copy
+
+import pygame
 
 import ui_elements
 from tile import Tile
 from config import user_config
 from ui_elements import ImagedButton
-from map_saver import MapSaver
+from map_manager import MapManager
 from minimap_former import MinimapFormer
 
 
@@ -161,14 +162,38 @@ class Camera:
         self.is_edge_scrolling = not self.is_edge_scrolling
 
 
+CHUNK_SIZE = 16
+
+class Chunk:
+    def __init__(self, tiles, x, y):
+        self.tiles = tiles
+        self.x = x * CHUNK_SIZE * TILE_SIZE
+        self.y = y * CHUNK_SIZE * TILE_SIZE
+        self.surface = None
+        self.dirty = True
+
+    def rebuild_surface(self):
+        if self.surface is None:
+            self.surface = pygame.Surface((CHUNK_SIZE * TILE_SIZE, CHUNK_SIZE * TILE_SIZE))
+        self.surface.fill((0,0,0,0))
+        for tile in self.tiles:
+            tile.draw_on_surface(self.surface, tile.x - self.x, tile.y - self.y)
+        self.dirty = False
+
+    def draw(self, screen, camera):
+        if self.dirty:
+            self.rebuild_surface()
+        screen.blit(self.surface, camera.world_to_screen(self.x, self.y))
+
+
 class World:
-    def __init__(self, width: int, height: int, start_biome: str = "Meadows") -> None:
+    def __init__(self, width: int, height: int, start_biome: str = "Meadows", tile_map: list[list[Tile]] = None) -> None:
         global WORLD_WIDTH, WORLD_HEIGHT
         WORLD_WIDTH, WORLD_HEIGHT = width, height
         self.width: int = width
         self.height: int = height
         self.start_biome = {"Meadows": "grass", "Mountains": "mountain", "Water": "water", "Desert": "sand", "Tundra": "snow", "Swamp": "swamp"}[start_biome]
-        self.tiles: list[list[Tile]] = []
+        self.tiles: list[list[Tile]] = tile_map
         self.flags_tiles = {"aqua_flag": None,
                             "black_flag": None,
                             "blue_flag": None,
@@ -177,12 +202,11 @@ class World:
                             "red_flag": None,
                             "white_flag": None,
                             "yellow_flag": None}
-        self.generate_world()
+        if tile_map is None:
+            self.generate_world()
 
     def generate_world(self) -> None:
-        print(f"Generation world {self.width}x{self.height}...")
         self.tiles = [[Tile(x, y, self.start_biome) for x in range(self.width)] for y in range(self.height)]
-        print("Done")
 
     def get_tile_by_cords(self, x: int, y: int) -> Tile | None:
         if 0 <= x < self.width and 0 <= y < self.height:
@@ -209,16 +233,20 @@ class UI:
         self.font = pygame.font.SysFont('Arial', 20)
         self.small_font = pygame.font.SysFont('Arial', 16)
 
+        self.do_show_hud: bool = True
         self.do_show_grid: bool = True
-        self.do_show_minimap: bool = True
+        self.do_show_minimap: bool = False
+        self.do_show_brush_size_slider: bool = False
 
-        self.map_saver: MapSaver = MapSaver()
+        self.map_saver: MapManager = MapManager()
         self.minimap_former: MinimapFormer = MinimapFormer()
 
         self.selected_tile: Tile | None = None
-        self.selected_item: str | None = None
-        self.current_tool: str | None = None
-        self.current_section: str | None = None
+        self.selected_item: str = "select_tool"
+        self.current_tool: str = "tool"
+        self.current_section: str = "Biomes"
+
+        self.current_label = None
 
     @staticmethod
     def draw_grid(surface: pygame.Surface, camera: Camera, start_x: int, start_y: int, end_x: int, end_y: int) -> None:
@@ -241,24 +269,24 @@ class UI:
         font = pygame.font.SysFont('tahoma', 22)
         y_offset = 15
 
-        mini_map = ui_elements.ImagedButton(
-            user_config.screen_width - 400,
-            user_config.screen_height - 200,
-            400,
-            200,
-            image_path="Assets/Images/Minimap/current_minimap.png",
-            hover_image_path="Assets/Images/Minimap/current_minimap.png"
-        )
-
         if self.do_show_grid:
             start_x = 0
             start_y = 0
             end_x = WORLD_WIDTH
             end_y = WORLD_HEIGHT
             self.draw_grid(surface, camera, start_x, start_y, end_x, end_y)
-
+        '''
         if self.do_show_minimap:
+            mini_map = ui_elements.ImagedButton(
+                user_config.screen_width - 400,
+                user_config.screen_height - 200,
+                400,
+                200,
+                image_path="Assets/Images/Minimap/current_minimap.png",
+                hover_image_path="Assets/Images/Minimap/current_minimap.png"
+            )
             mini_map.draw(surface)
+        '''
 
         if self.selected_tile:
             tile = self.selected_tile
@@ -316,578 +344,3 @@ def on_select_back_tool(actions: list, screen: pygame.Surface, camera: Camera) -
         tile.stored_flag = tile_before_act.stored_flag
         actions.pop(-1)
         tile.draw(screen, camera)
-
-
-def start_game(world_width: int, world_height: int, start_biome: str) -> None:
-    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-    pygame.display.set_caption("DespEco")
-
-    world = World(world_width, world_height, start_biome)
-    camera = Camera()
-    ui = UI()
-
-    clock = pygame.time.Clock()
-    ui.current_section = "Biomes"
-
-    button_width, button_height = 100, 100
-    dropdown_width, dropdown_height = 200, 32
-
-    dropdown_options = ["Biomes", "Resources", "Start positions", "Save map"]
-
-    redactor_type_dropdown = ui_elements.Dropdown(
-        10,
-        user_config.screen_height // 2 - 330,
-        dropdown_width,
-        dropdown_height,
-        dropdown_options,
-        default_index=0,
-        visible_items=4
-    )
-
-    save_map_button = ui_elements.Button(
-        10,
-        user_config.screen_height // 2 - 100,
-        button_width + 100,
-        button_height - 10,
-        "Save Map",
-        (255, 127, 80),
-        ui_elements.Colors.grass_darker_color,
-    )
-
-    map_name_input_box = ui_elements.InputBox(10,
-                                              user_config.screen_height // 2 - 200,
-                                              dropdown_width * 1.5,
-                                              dropdown_height,
-                                              "Map name: ",
-                                              max_length=15)
-
-    grass_button = ui_elements.ImagedButton(
-        user_config.screen_width // 2 - button_width // 2 - 340,
-        user_config.screen_height // 2 + 380,
-        button_width,
-        button_height,
-        image_path="Assets/Tiles/Light/grass.png",
-        hover_image_path="Assets/Tiles/Dark/grass.png"
-    )
-
-    mountain_button = ui_elements.ImagedButton(
-        user_config.screen_width // 2 - button_width // 2 - 210,
-        user_config.screen_height // 2 + 380,
-        button_width,
-        button_height,
-        image_path="Assets/Tiles/Light/mountain.png",
-        hover_image_path="Assets/Tiles/Dark/mountain.png"
-    )
-
-    water_button = ui_elements.ImagedButton(
-        user_config.screen_width // 2 - button_width // 2 - 80,
-        user_config.screen_height // 2 + 380,
-        button_width,
-        button_height,
-        image_path="Assets/Tiles/Light/water.png",
-        hover_image_path="Assets/Tiles/Dark/water.png"
-    )
-
-    sand_button = ui_elements.ImagedButton(
-        user_config.screen_width // 2 - button_width // 2 + 50,
-        user_config.screen_height // 2 + 380,
-        button_width,
-        button_height,
-        image_path="Assets/Tiles/Light/sand.png",
-        hover_image_path="Assets/Tiles/Dark/sand.png"
-    )
-
-    snow_button = ui_elements.ImagedButton(
-        user_config.screen_width // 2 - button_width // 2 + 180,
-        user_config.screen_height // 2 + 380,
-        button_width,
-        button_height,
-        image_path="Assets/Tiles/Light/snow.png",
-        hover_image_path="Assets/Tiles/Dark/snow.png"
-    )
-
-    swamp_button = ui_elements.ImagedButton(
-        user_config.screen_width // 2 - button_width // 2 + 310,
-        user_config.screen_height // 2 + 380,
-        button_width,
-        button_height,
-        image_path="Assets/Tiles/Light/swamp.png",
-        hover_image_path="Assets/Tiles/Dark/swamp.png"
-    )
-
-    aqua_flag_button = ui_elements.ImagedButton(
-        user_config.screen_width // 2 - button_width // 2 - 470,
-        user_config.screen_height // 2 + 380,
-        button_width,
-        button_height,
-        image_path="Assets/Flags/Light/aqua_flag.png",
-        hover_image_path="Assets/Flags/Dark/aqua_flag.png"
-    )
-
-    black_flag_button = ui_elements.ImagedButton(
-        user_config.screen_width // 2 - button_width // 2 - 340,
-        user_config.screen_height // 2 + 380,
-        button_width,
-        button_height,
-        image_path="Assets/Flags/Light/black_flag.png",
-        hover_image_path="Assets/Flags/Dark/black_flag.png"
-    )
-
-    blue_flag_button = ui_elements.ImagedButton(
-        user_config.screen_width // 2 - button_width // 2 - 210,
-        user_config.screen_height // 2 + 380,
-        button_width,
-        button_height,
-        image_path="Assets/Flags/Light/blue_flag.png",
-        hover_image_path="Assets/Flags/Dark/blue_flag.png"
-    )
-
-    green_flag_button = ui_elements.ImagedButton(
-        user_config.screen_width // 2 - button_width // 2 - 80,
-        user_config.screen_height // 2 + 380,
-        button_width,
-        button_height,
-        image_path="Assets/Flags/Light/green_flag.png",
-        hover_image_path="Assets/Flags/Dark/green_flag.png"
-    )
-
-    orange_flag_button = ui_elements.ImagedButton(
-        user_config.screen_width // 2 - button_width // 2 + 50,
-        user_config.screen_height // 2 + 380,
-        button_width,
-        button_height,
-        image_path="Assets/Flags/Light/orange_flag.png",
-        hover_image_path="Assets/Flags/Dark/orange_flag.png"
-    )
-
-    red_flag_button = ui_elements.ImagedButton(
-        user_config.screen_width // 2 - button_width // 2 + 180,
-        user_config.screen_height // 2 + 380,
-        button_width,
-        button_height,
-        image_path="Assets/Flags/Light/red_flag.png",
-        hover_image_path="Assets/Flags/Dark/red_flag.png"
-    )
-
-    white_flag_button = ui_elements.ImagedButton(
-        user_config.screen_width // 2 - button_width // 2 + 310,
-        user_config.screen_height // 2 + 380,
-        button_width,
-        button_height,
-        image_path="Assets/Flags/Light/white_flag.png",
-        hover_image_path="Assets/Flags/Dark/white_flag.png"
-    )
-
-    yellow_flag_button = ui_elements.ImagedButton(
-        user_config.screen_width // 2 - button_width // 2 + 440,
-        user_config.screen_height // 2 + 380,
-        button_width,
-        button_height,
-        image_path="Assets/Flags/Light/yellow_flag.png",
-        hover_image_path="Assets/Flags/Dark/yellow_flag.png"
-    )
-
-    food_resource_button = ui_elements.ImagedButton(
-        user_config.screen_width // 2 - button_width // 2 - 400,
-        user_config.screen_height // 2 + 380,
-        button_width,
-        button_height,
-        image_path="Assets/Resources/Light/wheat.png",
-        hover_image_path="Assets/Resources/Dark/wheat.png"
-    )
-
-    wood_resource_button = ui_elements.ImagedButton(
-        user_config.screen_width // 2 - button_width // 2 - 270,
-        user_config.screen_height // 2 + 380,
-        button_width,
-        button_height,
-        image_path="Assets/Resources/Light/tree.png",
-        hover_image_path="Assets/Resources/Dark/tree.png"
-    )
-
-    stone_resource_button = ui_elements.ImagedButton(
-        user_config.screen_width // 2 - button_width // 2 - 140,
-        user_config.screen_height // 2 + 380,
-        button_width,
-        button_height,
-        image_path="Assets/Resources/Light/stone.png",
-        hover_image_path="Assets/Resources/Dark/stone.png"
-    )
-
-    copper_resource_button = ui_elements.ImagedButton(
-        user_config.screen_width // 2 - button_width // 2 - 10,
-        user_config.screen_height // 2 + 380,
-        button_width,
-        button_height,
-        image_path="Assets/Resources/Light/copper.png",
-        hover_image_path="Assets/Resources/Dark/copper.png"
-    )
-
-    iron_resource_button = ui_elements.ImagedButton(
-        user_config.screen_width // 2 - button_width // 2 + 120,
-        user_config.screen_height // 2 + 380,
-        button_width,
-        button_height,
-        image_path="Assets/Resources/Light/iron.png",
-        hover_image_path="Assets/Resources/Dark/iron.png"
-    )
-
-    silver_resource_button = ui_elements.ImagedButton(
-        user_config.screen_width // 2 - button_width // 2 + 250,
-        user_config.screen_height // 2 + 380,
-        button_width,
-        button_height,
-        image_path="Assets/Resources/Light/silver.png",
-        hover_image_path="Assets/Resources/Dark/silver.png"
-    )
-
-    gold_resource_button = ui_elements.ImagedButton(
-        user_config.screen_width // 2 - button_width // 2 + 380,
-        user_config.screen_height // 2 + 380,
-        button_width,
-        button_height,
-        image_path="Assets/Resources/Light/gold.png",
-        hover_image_path="Assets/Resources/Dark/gold.png"
-    )
-
-    select_tool_button = ui_elements.ImagedButton(
-        user_config.screen_width // 2 - button_width // 2 - 768,
-        user_config.screen_height // 2 - 100,
-        button_width,
-        button_height,
-        image_path="Assets/ToolsButtons/Light/select_tool.png",
-        hover_image_path="Assets/ToolsButtons/Dark/select_tool.png"
-    )
-
-    remove_tool_button = ui_elements.ImagedButton(
-        user_config.screen_width // 2 - button_width // 2 - 768,
-        user_config.screen_height // 2 + 30,
-        button_width,
-        button_height,
-        image_path="Assets/ToolsButtons/Light/remove_tool.png",
-        hover_image_path="Assets/ToolsButtons/Dark/remove_tool.png"
-    )
-
-    back_tool_button = ui_elements.ImagedButton(
-        user_config.screen_width // 2 - button_width // 2 - 768,
-        user_config.screen_height // 2 + 160,
-        button_width,
-        button_height,
-        image_path="Assets/ToolsButtons/Light/back_tool.png",
-        hover_image_path="Assets/ToolsButtons/Dark/back_tool.png"
-    )
-
-    biomes_buttons = (grass_button, mountain_button, water_button, sand_button, snow_button, swamp_button)
-    resources_buttons = (food_resource_button, wood_resource_button, stone_resource_button, copper_resource_button, iron_resource_button, silver_resource_button, gold_resource_button)
-    flags_buttons = (aqua_flag_button, black_flag_button, blue_flag_button, green_flag_button, orange_flag_button, red_flag_button,white_flag_button, yellow_flag_button)
-    tools_buttons = (select_tool_button, remove_tool_button, back_tool_button)
-    all_buttons = (*biomes_buttons, *flags_buttons, *resources_buttons, *tools_buttons)
-    scenes_objects = (*all_buttons, redactor_type_dropdown, save_map_button, map_name_input_box)
-
-    actions = []
-
-    is_running = True
-    minimap_score = 0
-    print("Game started")
-
-    while is_running:
-
-        mouse_x, mouse_y = pygame.mouse.get_pos()
-        mouse_pos = pygame.mouse.get_pos()
-        keys = pygame.key.get_pressed()
-
-        for event in pygame.event.get():
-            redactor_type_dropdown.handle_event(event)
-
-            if event.type == pygame.QUIT:
-                is_running = False
-
-            elif event.type == pygame.KEYDOWN:
-                map_name_input_box.handle_event(event)
-                if event.key == pygame.K_ESCAPE:
-                    is_running = False
-                elif event.key == pygame.K_F1:
-                    ui.do_show_grid = not ui.do_show_grid
-                elif event.key == pygame.K_F2:
-                    ui.do_show_minimap = not ui.do_show_minimap
-                elif event.key == pygame.K_F4:
-                    camera.toggle_edge_scrolling()
-
-                elif event.key == pygame.K_SPACE:
-                    if ui.selected_tile:
-                        camera.center_on_tile(ui.selected_tile.x, ui.selected_tile.y)
-
-                elif event.key == pygame.K_z:
-                    on_select_select_tool(select_tool_button, all_buttons, ui)
-                elif event.key == pygame.K_x:
-                    on_select_remove_tool(remove_tool_button, all_buttons, ui)
-                elif event.key == pygame.K_c:
-                    on_select_back_tool(actions, screen, camera)
-
-                elif event.key == pygame.K_TAB:
-                    current_option_index = dropdown_options.index(ui.current_section)
-                    new_index = {0: 1, 1: 0, 2: 0, 3: 0}
-                    ui.current_section = dropdown_options[new_index[current_option_index]]
-                    redactor_type_dropdown.selected_index = new_index[current_option_index]
-
-                elif event.key == pygame.K_1:
-                    if ui.current_section == "Biomes":
-                        mark_only_button(biomes_buttons[0],(*biomes_buttons, *resources_buttons, *flags_buttons, *tools_buttons))
-                        ui.selected_item = "grass"
-                        ui.current_tool = "biome"
-                    if ui.current_section == "Resources":
-                        mark_only_button(resources_buttons[0],(*biomes_buttons, *resources_buttons, *flags_buttons, *tools_buttons))
-                        ui.selected_item = "food"
-                        ui.current_tool = "resource"
-                    if ui.current_section == "Start positions":
-                        mark_only_button(flags_buttons[0],(*biomes_buttons, *resources_buttons, *flags_buttons, *tools_buttons))
-                        ui.selected_item = "aqua_flag"
-                        ui.current_tool = "flag"
-
-                elif event.key == pygame.K_2:
-                    if ui.current_section == "Biomes":
-                        mark_only_button(biomes_buttons[1],(*biomes_buttons, *resources_buttons, *flags_buttons, *tools_buttons))
-                        ui.selected_item = "mountain"
-                        ui.current_tool = "biome"
-                    if ui.current_section == "Resources":
-                        mark_only_button(resources_buttons[1],(*biomes_buttons, *resources_buttons, *flags_buttons, *tools_buttons))
-                        ui.selected_item = "wood"
-                        ui.current_tool = "resource"
-                    if ui.current_section == "Start positions":
-                        mark_only_button(flags_buttons[1],(*biomes_buttons, *resources_buttons, *flags_buttons, *tools_buttons))
-                        ui.selected_item = "black_flag"
-                        ui.current_tool = "flag"
-
-                elif event.key == pygame.K_3:
-                    if ui.current_section == "Biomes":
-                        mark_only_button(biomes_buttons[2],(*biomes_buttons, *resources_buttons, *flags_buttons, *tools_buttons))
-                        ui.selected_item = "water"
-                        ui.current_tool = "biome"
-                    if ui.current_section == "Resources":
-                        mark_only_button(resources_buttons[2],(*biomes_buttons, *resources_buttons, *flags_buttons, *tools_buttons))
-                        ui.selected_item = "stone"
-                        ui.current_tool = "resource"
-                    if ui.current_section == "Start positions":
-                        mark_only_button(flags_buttons[2],(*biomes_buttons, *resources_buttons, *flags_buttons, *tools_buttons))
-                        ui.selected_item = "blue_flag"
-                        ui.current_tool = "flag"
-
-                elif event.key == pygame.K_4:
-                    if ui.current_section == "Biomes":
-                        mark_only_button(biomes_buttons[3],(*biomes_buttons, *resources_buttons, *flags_buttons, *tools_buttons))
-                        ui.selected_item = "sand"
-                        ui.current_tool = "biome"
-                    if ui.current_section == "Resources":
-                        mark_only_button(resources_buttons[3],(*biomes_buttons, *resources_buttons, *flags_buttons, *tools_buttons))
-                        ui.selected_item = "copper"
-                        ui.current_tool = "resource"
-                    if ui.current_section == "Start positions":
-                        mark_only_button(flags_buttons[3],(*biomes_buttons, *resources_buttons, *flags_buttons, *tools_buttons))
-                        ui.selected_item = "green_flag"
-                        ui.current_tool = "flag"
-
-                elif event.key == pygame.K_5:
-                    if ui.current_section == "Biomes":
-                        mark_only_button(biomes_buttons[4],(*biomes_buttons, *resources_buttons, *flags_buttons, *tools_buttons))
-                        ui.selected_item = "snow"
-                        ui.current_tool = "biome"
-                    if ui.current_section == "Resources":
-                        mark_only_button(resources_buttons[4],(*biomes_buttons, *resources_buttons, *flags_buttons, *tools_buttons))
-                        ui.selected_item = "iron"
-                        ui.current_tool = "resource"
-                    if ui.current_section == "Start positions":
-                        mark_only_button(flags_buttons[4],(*biomes_buttons, *resources_buttons, *flags_buttons, *tools_buttons))
-                        ui.selected_item = "orange_flag"
-                        ui.current_tool = "flag"
-
-                elif event.key == pygame.K_6:
-                    if ui.current_section == "Biomes":
-                        mark_only_button(biomes_buttons[5],(*biomes_buttons, *resources_buttons, *flags_buttons, *tools_buttons))
-                        ui.selected_item = "swamp"
-                        ui.current_tool = "biome"
-                    if ui.current_section == "Resources":
-                        mark_only_button(resources_buttons[5],(*biomes_buttons, *resources_buttons, *flags_buttons, *tools_buttons))
-                        ui.selected_item = "silver"
-                        ui.current_tool = "resource"
-                    if ui.current_section == "Start positions":
-                        mark_only_button(flags_buttons[5],(*biomes_buttons, *resources_buttons, *flags_buttons, *tools_buttons))
-                        ui.selected_item = "red_flag"
-                        ui.current_tool = "flag"
-
-                elif event.key == pygame.K_7:
-                    if ui.current_section == "Resources":
-                        mark_only_button(resources_buttons[6],(*biomes_buttons, *resources_buttons, *flags_buttons, *tools_buttons))
-                        ui.selected_item = "gold"
-                        ui.current_tool = "resource"
-                    if ui.current_section == "Start positions":
-                        mark_only_button(flags_buttons[6],(*biomes_buttons, *resources_buttons, *flags_buttons, *tools_buttons))
-                        ui.selected_item = "white_flag"
-                        ui.current_tool = "flag"
-
-                elif event.key == pygame.K_8:
-                    if ui.current_section == "Start positions":
-                        mark_only_button(flags_buttons[7],
-                                         (*biomes_buttons, *resources_buttons, *flags_buttons, *tools_buttons))
-                        ui.selected_item = "yellow_flag"
-                        ui.current_tool = "flag"
-
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1:
-                    mouse_click = True
-
-                    if select_tool_button.is_clicked(mouse_pos, mouse_click):
-                        on_select_select_tool(select_tool_button, all_buttons, ui)
-                    if remove_tool_button.is_clicked(mouse_pos, mouse_click):
-                        on_select_remove_tool(remove_tool_button, all_buttons, ui)
-                    if back_tool_button.is_clicked(mouse_pos, mouse_click) and len(actions) > 0:
-                        on_select_back_tool(actions, screen, camera)
-
-                    if ui.current_section == "Biomes":
-                        for buttn in biomes_buttons:
-                            if buttn.is_clicked(mouse_pos, mouse_click):
-                                mark_only_button(buttn, (*biomes_buttons, *resources_buttons, *flags_buttons, *tools_buttons))
-                                buttons2items = {grass_button: "grass",
-                                                 mountain_button: "mountain",
-                                                 water_button: "water",
-                                                 sand_button: "sand",
-                                                 snow_button: "snow",
-                                                 swamp_button: "swamp"}
-                                ui.selected_item = buttons2items[buttn]
-                                ui.current_tool = "biome"
-
-                    elif ui.current_section == "Resources":
-                        for buttn in resources_buttons:
-                            if buttn.is_clicked(mouse_pos, mouse_click):
-                                mark_only_button(buttn, (*biomes_buttons, *resources_buttons, *flags_buttons, *tools_buttons))
-                                buttons2items = {food_resource_button: "food",
-                                                 wood_resource_button: "wood",
-                                                 stone_resource_button: "stone",
-                                                 copper_resource_button: "copper",
-                                                 iron_resource_button: "iron",
-                                                 silver_resource_button: "silver",
-                                                 gold_resource_button: "gold"}
-                                ui.selected_item = buttons2items[buttn]
-                                ui.current_tool = "resource"
-
-                    elif ui.current_section == "Start positions":
-                        for buttn in flags_buttons:
-                            if buttn.is_clicked(mouse_pos, mouse_click):
-                                mark_only_button(buttn, (*biomes_buttons, *resources_buttons, *flags_buttons, *tools_buttons))
-                                buttons2items = {aqua_flag_button: "aqua_flag",
-                                                 black_flag_button: "black_flag",
-                                                 blue_flag_button: "blue_flag",
-                                                 green_flag_button: "green_flag",
-                                                 orange_flag_button: "orange_flag",
-                                                 red_flag_button: "red_flag",
-                                                 white_flag_button: "white_flag",
-                                                 yellow_flag_button: "yellow_flag",}
-                                ui.selected_item = buttons2items[buttn]
-                                ui.current_tool = "flag"
-
-                    if not(any(obj.rect.collidepoint(mouse_pos) for obj in scenes_objects)) and not(redactor_type_dropdown.item_rect.collidepoint(mouse_pos)):
-                        tile_x, tile_y = camera.screen_to_world(mouse_x, mouse_y)
-
-                        for y in range(world.height):
-                            for x in range(world.width):
-                                world.tiles[y][x].selected = False
-
-                        tile = world.get_tile_by_cords(tile_x, tile_y)
-                        if tile:
-                            tile.selected = True
-                            ui.update_selected_tile(tile)
-                            print(f"Tile: ({tile.x}, {tile.y}) - {tile.type}")
-
-                            if ui.current_tool == "tool" and ui.selected_item:
-                                if ui.selected_item == "remove_tool":
-                                    tile_before_act = copy.deepcopy(tile)
-                                    clear_tile(tile, world, screen, camera)
-                                    if not is_tiles_same(tile_before_act, tile):
-                                        actions.append({"before": tile_before_act, "after": tile})
-
-
-                            if (ui.current_section == "Biomes") and ui.selected_item and ui.current_tool == "biome":
-                                biome = ui.selected_item
-                                if biome != "water" or tile.stored_flag is None:
-                                    tile_before_act = copy.deepcopy(tile)
-                                    tile.type = biome
-                                    if tile.type == "water":
-                                        tile.stored_resource = None
-                                    if not is_tiles_same(tile_before_act, tile):
-                                        actions.append({"before": tile_before_act, "after": tile})
-                                    tile.draw(screen, camera)
-
-                            elif (ui.current_section == "Resources") and ui.selected_item and ui.current_tool == "resource":
-                                resource = ui.selected_item
-                                if not tile.stored_flag:
-                                    tile_before_act = copy.deepcopy(tile)
-                                    tile.stored_resource = resource
-                                    if not is_tiles_same(tile_before_act, tile):
-                                        actions.append({"before": tile_before_act, "after": tile})
-                                    tile.draw(screen, camera)
-
-                            elif (ui.current_section == "Start positions") and ui.selected_item and ui.current_tool == "flag":
-                                flag = ui.selected_item
-                                if not tile.stored_resource:
-                                    tile_before_act = copy.deepcopy(tile)
-                                    if world.flags_tiles[flag] is not None:
-                                        world.flags_tiles[flag].stored_flag = None
-                                    world.flags_tiles[flag] = tile
-                                    tile.stored_flag = flag
-                                    if not is_tiles_same(tile_before_act, tile):
-                                        actions.append({"before": tile_before_act, "after": tile})
-                                    tile.draw(screen, camera)
-
-                elif event.button == 4 or event.button == 5:
-                    redactor_type_dropdown.handle_event(event)
-            elif event.type == pygame.MOUSEWHEEL:
-                camera.handle_event(event)
-
-        if not map_name_input_box.active:
-            camera.update_with_mouse(mouse_x, mouse_y)
-            camera.update_with_keyboard(keys)
-        camera.update()
-
-        screen.fill(BLACK)
-        world.draw(screen, camera)
-
-        minimap_score += 1
-        if minimap_score == 60:
-            minimap_score = 0
-            terrain_map = ui.map_saver.code_maps(world.tiles)["terrain_map"]
-            ui.minimap_former.do_pipeline(terrain_map)
-        ui.draw(screen, camera)
-
-        redactor_type_dropdown.draw(screen)
-
-        ui.current_section = redactor_type_dropdown.get_selected_option()
-        map_name_input_box.active = False
-
-        if ui.current_section == "Biomes":
-            for button in (*biomes_buttons, *tools_buttons):
-                button.check_hover(mouse_pos)
-                button.draw(screen)
-
-        elif ui.current_section == "Resources":
-            for button in (*resources_buttons, *tools_buttons):
-                button.check_hover(mouse_pos)
-                button.draw(screen)
-
-        elif ui.current_section == "Start positions":
-            for button in (*flags_buttons, *tools_buttons):
-                button.check_hover(mouse_pos)
-                button.draw(screen)
-
-        elif ui.current_section == "Save map":
-            map_name_input_box.active = True
-            save_map_button.draw(screen)
-            map_name_input_box.draw(screen)
-
-
-        fps_text = ui.small_font.render(f"FPS: {int(clock.get_fps())}", True, GREEN)
-        screen.blit(fps_text, (SCREEN_WIDTH - 80, SCREEN_HEIGHT - 25))
-
-        pygame.display.flip()
-        clock.tick(FPS)
-
-    pygame.quit()
-    print("\nGame over")

@@ -30,12 +30,20 @@ class MapManager:
         return game_map
 
     @staticmethod
-    def save_map(game_map: list[list[int]], path_to_save: str = "Saves/map.txt") -> None:
+    def save_map(game_map: list[list[int]], path_to_save: str = "Saves/map.txt", is_forcedly = False) -> str:
+        try:
+            with open(path_to_save, "x"):
+                pass
+        except FileExistsError:
+            if not is_forcedly:
+                return "Map already exists"
+
         with open(path_to_save, "w") as file:
             json.dump(game_map, file, indent=4)
+        return "Success"
 
     @staticmethod
-    def load_map(map_name: str):
+    def load_map(map_name: str) -> list[list[int]]:
         path_to_map = Path(f"Saves/{map_name}.json")
         with open(path_to_map, "r") as file:
             game_map = json.load(file)
