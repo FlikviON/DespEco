@@ -10,7 +10,7 @@ from start_empty_map import World
 from start_empty_map import UI
 from map_manager import MapManager
 from sounds_manager import SoundsManager
-from minimap import Minimap
+from minimap_manager import MinimapManager
 
 
 class GameInRedactorMode:
@@ -40,7 +40,8 @@ class GameInRedactorMode:
         self.back_button_tick: int = -10
         self.brush_button_tick: int = -10
 
-        self.minimap = Minimap(self.world.tiles, width=600, height=600)
+        self.minimap_manager = MinimapManager(self.world.tiles, width=self.screen_WIDTH, height=self.screen_HEIGHT)
+        self.changed_tiles_in_cycle: list = []
         self.dirty = True
 
         self.map_name_for_repeated_saving: str = ""
@@ -309,8 +310,9 @@ class GameInRedactorMode:
         self.redactor_type_dropdown.selected_index = new_index[current_option_index]
 
     def _on_tab(self) -> None:
-        self.ui.do_show_minimap = True
-        self.minimap.update()
+        self.minimap_manager.update(self.changed_tiles_in_cycle)
+        self.changed_tiles_in_cycle.clear()
+        self.ui.do_show_minimap = not self.ui.do_show_minimap
 
     def on_escape(self) -> None:
         self.is_running = False
@@ -371,6 +373,7 @@ class GameInRedactorMode:
 
     def _on_tile_click(self, tile: Tile) -> None:
         tile.selected = True
+        self.world.selected_tiles.append((tile.x, tile.y))
         self.ui.update_selected_tile(tile)
         print(f"Tile: ({tile.x}, {tile.y}) - {tile.type}")
 
@@ -385,6 +388,7 @@ class GameInRedactorMode:
 
         elif (self.ui.current_section == "Start positions") and self.ui.selected_item and self.ui.current_tool == "flag":
             self._on_use_flag_tool(tile)
+        self.changed_tiles_in_cycle.append(tile)
 
     def _update_camera(self, keys, mouse_pos: tuple[int, int]) -> None:
         mouse_x, mouse_y = mouse_pos
@@ -523,50 +527,57 @@ class GameInRedactorMode:
                     self.ui.current_label = success_label
 
     def _on_keyboard_event(self, event: pygame.Event) -> None:
-        self.map_name_input_box.handle_event(event)
+        if not self.ui.do_show_minimap:
+            self.map_name_input_box.handle_event(event)
 
-        keys2acts = {
-            pygame.K_ESCAPE: self.on_escape,
-            pygame.K_F1: lambda: self._on_f1(),
-            pygame.K_F2: lambda: self._on_f2(),
-            pygame.K_F3: lambda: self._on_f3(),
-            pygame.K_F4: lambda: self._on_f4(),
-            pygame.K_SPACE: lambda: self._on_space(),
-            pygame.K_z: lambda: self._on_z(),
-            pygame.K_x: lambda: self._on_x(),
-            pygame.K_c: lambda: self._on_select_back_tool(),
-            pygame.K_v: lambda: self._on_select_brush_tool(),
-            pygame.K_q: lambda: self._on_q(),
-            pygame.K_TAB: lambda: self._on_tab(),
-            pygame.K_1: lambda: self._on_1(),
-            pygame.K_2: lambda: self._on_2(),
-            pygame.K_3: lambda: self._on_3(),
-            pygame.K_4: lambda: self._on_4(),
-            pygame.K_5: lambda: self._on_5(),
-            pygame.K_6: lambda: self._on_6(),
-            pygame.K_7: lambda: self._on_7(),
-            pygame.K_8: lambda: self._on_8(),
-        }
+            keys2acts = {
+                pygame.K_ESCAPE: self.on_escape,
+                pygame.K_F1: lambda: self._on_f1(),
+                pygame.K_F2: lambda: self._on_f2(),
+                pygame.K_F3: lambda: self._on_f3(),
+                pygame.K_F4: lambda: self._on_f4(),
+                pygame.K_SPACE: lambda: self._on_space(),
+                pygame.K_z: lambda: self._on_z(),
+                pygame.K_x: lambda: self._on_x(),
+                pygame.K_c: lambda: self._on_select_back_tool(),
+                pygame.K_v: lambda: self._on_select_brush_tool(),
+                pygame.K_q: lambda: self._on_q(),
+                pygame.K_TAB: lambda: self._on_tab(),
+                pygame.K_1: lambda: self._on_1(),
+                pygame.K_2: lambda: self._on_2(),
+                pygame.K_3: lambda: self._on_3(),
+                pygame.K_4: lambda: self._on_4(),
+                pygame.K_5: lambda: self._on_5(),
+                pygame.K_6: lambda: self._on_6(),
+                pygame.K_7: lambda: self._on_7(),
+                pygame.K_8: lambda: self._on_8(),
+            }
 
-        if event.key in keys2acts:
-            keys2acts.get(event.key)()
+            if event.key in keys2acts:
+                keys2acts.get(event.key)()
+        else:
+            if event.key == pygame.K_TAB:
+                self.ui.do_show_minimap = False
 
     def _on_mouse_click(self, mouse_pos: tuple[int, int]) -> None:
         mouse_x, mouse_y = mouse_pos
 
-        self._handle_tools_buttons(mouse_pos)
-        self._handle_hood_buttons(mouse_pos)
-        if self.ui.current_section == "Save map":
-            self._handle_save_map_button(mouse_pos)
+        if not self.ui.do_show_minimap:
+            self._handle_tools_buttons(mouse_pos)
+            self._handle_hood_buttons(mouse_pos)
+            if self.ui.current_section == "Save map":
+                self._handle_save_map_button(mouse_pos)
 
-        if not (any(obj.rect.collidepoint(mouse_pos) for obj in self.scenes_objects)) and not (self.redactor_type_dropdown.item_rect.collidepoint(mouse_pos)):
-            tile_x, tile_y = self.camera.screen_to_world(mouse_x, mouse_y)
-            self.world.deselect_all_tiles()
-            tile = self.world.get_tile_by_cords(tile_x, tile_y)
-            if tile:
-                if self.brush_size > 1:
-                    self._draw_with_brush(tile)
-                self._on_tile_click(tile)
+            if not(any(obj.rect.collidepoint(mouse_pos) for obj in self.scenes_objects)) and not(self.redactor_type_dropdown.item_rect.collidepoint(mouse_pos)):
+                tile_x, tile_y = self.camera.screen_to_world(mouse_x, mouse_y)
+                self.world.deselect_all_tiles()
+                tile = self.world.get_tile_by_cords(tile_x, tile_y)
+                if tile:
+                    if self.brush_size > 1:
+                        self._draw_with_brush(tile)
+                    self._on_tile_click(tile)
+        else:
+            self.minimap_manager.handle_click(mouse_pos, self.camera)
 
     def _on_lkm_pressed(self, mouse_pos: tuple[int, int]) -> None:
         if not (any(obj.rect.collidepoint(mouse_pos) for obj in self.scenes_objects)) and not (self.redactor_type_dropdown.item_rect.collidepoint(mouse_pos)):
@@ -582,17 +593,8 @@ class GameInRedactorMode:
         if self.ui.selected_item in ("select_tool", None) and self.ui.current_tool in ("tool", None):
             self._mark_only_button(self.select_tool_button, self.all_buttons)
 
-    def _initialize_minimap(self) -> None:
-        if not self.game_map:
-            self.game_map = self.ui.map_saver.encode_map(self.world.tiles)
-            self.ui.minimap_former.do_pipeline(self.game_map)
-
-    def _update_minimap(self) -> None:
-        if self.changed_tile_in_tick:
-            self.game_map = self.ui.map_saver.update_map(self.game_map, self.changed_tile_in_tick)
-            self.ui.minimap_former.do_pipeline(self.game_map)
-
     def _draw_with_brush(self, start_tile: Tile) -> None:
+        self.world.deselect_all_tiles()
         start_x = max(0, start_tile.x - self.brush_size // 2)
         end_x = min(self.world_width - 1, start_tile.x + self.brush_size // 2)
         start_y = max(0, start_tile.y - self.brush_size // 2)
@@ -608,12 +610,15 @@ class GameInRedactorMode:
         tile = self.world.get_tile_by_cords(tile_x, tile_y)
         if tile:
             tile.selected = True
+            self.world.selected_tiles.append((tile.x, tile.y))
         if self.brush_size > 1:
+            self.world.deselect_all_tiles()
             for x in range(max(0, tile.x - self.brush_size // 2), min(self.world_width, tile.x + self.brush_size // 2 + 1)):
                 for y in range(max(0, tile.y - self.brush_size // 2), min(self.world_width, tile.y + self.brush_size // 2 + 1)):
                     tile_new = self.world.get_tile_by_cords(x, y)
                     if tile_new:
                         tile_new.selected = True
+                        self.world.selected_tiles.append((tile_new.x, tile_new.y))
 
     def _on_ticks(self) -> None:
         self.tick += 1
@@ -626,13 +631,21 @@ class GameInRedactorMode:
                 self._unmark_button(self.brush_tool_button)
                 self.brush_button_tick = -10
 
+    def _determine_biome_for_ambient(self, mouse_x: int, mouse_y: int) -> str:
+        tile_x, tile_y = self.camera.screen_to_world(mouse_x, mouse_y)
+        tile = self.world.get_tile_by_cords(tile_x, tile_y)
+        if tile.stored_resource == "wood":
+            return "forest"
+        return tile.type
+
     def start_game(self) -> None:
             self.screen = pygame.display.set_mode((self.screen_WIDTH, self.screen_HEIGHT))
             pygame.display.set_caption("DespEco")
             clock = pygame.time.Clock()
+            self.minimap_manager.tile_map = self.world.tiles
+            self.minimap_manager.redraw()
             self.ui.current_section = "Biomes"
             self._create_objects()
-            self._initialize_minimap()
             self._choose_select_button()
 
             is_lkm_pressed = False
@@ -641,12 +654,15 @@ class GameInRedactorMode:
                 self._on_ticks()
                 self.changed_tile_in_tick = None
                 self.brush_size = self.brush_size_slider.current_val
-                self.sounds_manager.randomly_play_random_theme()
 
                 mouse_pos = pygame.mouse.get_pos()
                 keys = pygame.key.get_pressed()
 
                 self._highlight_tiles(mouse_pos)
+
+                self.sounds_manager.randomly_play_random_theme()
+                biome_for_ambient = self._determine_biome_for_ambient(mouse_pos[0], mouse_pos[1])
+                self.sounds_manager.randomly_play_ambient_sound(biome_for_ambient)
 
                 for event in pygame.event.get():
                     self.redactor_type_dropdown.handle_event(event)
@@ -659,18 +675,16 @@ class GameInRedactorMode:
                     elif event.type == pygame.KEYDOWN:
                         self._on_keyboard_event(event)
 
-                    elif event.type == pygame.KEYUP:
-                        if event.key == pygame.K_TAB:
-                            self.ui.do_show_minimap = False
-
                     elif event.type == pygame.MOUSEBUTTONDOWN:
                         if event.button == 1:
                             self._on_mouse_click(mouse_pos)
-                            is_lkm_pressed = True
+                            if not self.ui.do_show_minimap:
+                                is_lkm_pressed = True
 
                     elif event.type == pygame.MOUSEBUTTONUP:
-                        if event.button == 1:
-                            is_lkm_pressed = False
+                        if not self.ui.do_show_minimap:
+                            if event.button == 1:
+                                is_lkm_pressed = False
 
                     elif event.type == pygame.MOUSEWHEEL:
                         self._on_mousewheel(event)
@@ -681,18 +695,13 @@ class GameInRedactorMode:
                 self._update_camera(keys, mouse_pos)
                 self.world.draw(self.screen, self.camera)
 
-                #self._update_minimap()
-
                 self.ui.current_section = self.redactor_type_dropdown.get_selected_option()
                 self.map_name_input_box.active = False
-                self._draw_interface(clock, mouse_pos)
-
-                """
-                if self.ui.do_show_minimap:
-                    self.minimap.draw(self.screen, self.camera)
-                    if self.changed_tile_in_tick:
-                        self.minimap.update()
-                """
+                if not self.ui.do_show_minimap:
+                    self._draw_interface(clock, mouse_pos)
+                else:
+                    is_lkm_pressed = False
+                    self.minimap_manager.draw(self.screen, self.camera)
 
                 pygame.display.flip()
                 clock.tick(self.FPS)

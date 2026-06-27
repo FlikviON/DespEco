@@ -1,13 +1,8 @@
-import copy
-
 import pygame
 
-import ui_elements
 from tile import Tile
 from config import user_config
-from ui_elements import ImagedButton
 from map_manager import MapManager
-from minimap_former import MinimapFormer
 
 
 pygame.init()
@@ -114,7 +109,6 @@ class Camera:
                 self.zoom = min(self.max_zoom, self.zoom * 1.1)
             else:
                 self.zoom = max(self.min_zoom, self.zoom / 1.1)
-            print(self.zoom)
 
             world_x_after = mouse_x / self.zoom + self.x
             world_y_after = mouse_y / self.zoom + self.y
@@ -166,8 +160,8 @@ CHUNK_SIZE = 16
 
 class Chunk:
     def __init__(self, tiles, x, y):
-        self.tiles = tiles
-        self.x = x * CHUNK_SIZE * TILE_SIZE
+        self.tiles = tiles  # список тайлов этого чанка
+        self.x = x * CHUNK_SIZE * TILE_SIZE  # мировые координаты в пикселях
         self.y = y * CHUNK_SIZE * TILE_SIZE
         self.surface = None
         self.dirty = True
@@ -175,7 +169,7 @@ class Chunk:
     def rebuild_surface(self):
         if self.surface is None:
             self.surface = pygame.Surface((CHUNK_SIZE * TILE_SIZE, CHUNK_SIZE * TILE_SIZE))
-        self.surface.fill((0,0,0,0))
+        self.surface.fill((0,0,0,0))  # прозрачный фон, если есть несколько слоёв
         for tile in self.tiles:
             tile.draw_on_surface(self.surface, tile.x - self.x, tile.y - self.y)
         self.dirty = False
@@ -194,14 +188,16 @@ class World:
         self.height: int = height
         self.start_biome = {"Meadows": "grass", "Mountains": "mountain", "Water": "water", "Desert": "sand", "Tundra": "snow", "Swamp": "swamp"}[start_biome]
         self.tiles: list[list[Tile]] = tile_map
-        self.flags_tiles = {"aqua_flag": None,
-                            "black_flag": None,
-                            "blue_flag": None,
-                            "green_flag": None,
-                            "orange_flag": None,
-                            "red_flag": None,
-                            "white_flag": None,
-                            "yellow_flag": None}
+        self.flags_tiles: dict = {"aqua_flag": None,
+                                  "black_flag": None,
+                                  "blue_flag": None,
+                                  "green_flag": None,
+                                  "orange_flag": None,
+                                  "red_flag": None,
+                                  "white_flag": None,
+                                  "yellow_flag": None}
+        self.selected_tiles: list[tuple[int, int]] = []
+
         if tile_map is None:
             self.generate_world()
 
@@ -214,9 +210,9 @@ class World:
         return None
 
     def deselect_all_tiles(self) -> None:
-        for y in range(self.height):
-            for x in range(self.width):
-                self.tiles[y][x].selected = False
+        for tile_x, tile_y in self.selected_tiles:
+                self.tiles[tile_y][tile_x].selected = False
+        self.selected_tiles.clear()
 
     def draw(self, surface: pygame.Surface, camera: Camera) -> None:
         start_x, start_y, end_x, end_y = camera.get_visible_tiles()
@@ -238,8 +234,7 @@ class UI:
         self.do_show_minimap: bool = False
         self.do_show_brush_size_slider: bool = False
 
-        self.map_saver: MapManager = MapManager()
-        self.minimap_former: MinimapFormer = MinimapFormer()
+        self.map_manager: MapManager = MapManager()
 
         self.selected_tile: Tile | None = None
         self.selected_item: str = "select_tool"
@@ -275,18 +270,6 @@ class UI:
             end_x = WORLD_WIDTH
             end_y = WORLD_HEIGHT
             self.draw_grid(surface, camera, start_x, start_y, end_x, end_y)
-        '''
-        if self.do_show_minimap:
-            mini_map = ui_elements.ImagedButton(
-                user_config.screen_width - 400,
-                user_config.screen_height - 200,
-                400,
-                200,
-                image_path="Assets/Images/Minimap/current_minimap.png",
-                hover_image_path="Assets/Images/Minimap/current_minimap.png"
-            )
-            mini_map.draw(surface)
-        '''
 
         if self.selected_tile:
             tile = self.selected_tile
@@ -309,38 +292,3 @@ class UI:
         self.selected_tile = tile
 
 
-
-def mark_only_button(button: ui_elements.ImagedButton, buttons: tuple) -> None:
-    for buttn in buttons:
-        buttn.border_color = ui_elements.Colors.black
-    button.border_color = ui_elements.Colors.dark_red
-
-def clear_tile(tile: Tile, world: World, screen: pygame.Surface, camera: Camera) -> None:
-    tile.stored_resource = None
-    if world.flags_tiles.get(tile.stored_flag) == tile:
-        world.flags_tiles[tile.stored_flag] = None
-    tile.stored_flag = None
-    tile.draw(screen, camera)
-
-def is_tiles_same(tile1: Tile, tile2: Tile) -> bool:
-    return tile1.type == tile2.type and tile1.stored_resource == tile2.stored_resource and tile1.stored_flag == tile2.stored_flag
-
-def on_select_select_tool(select_tool_button: ImagedButton, all_buttons: tuple, ui: UI) -> None:
-    mark_only_button(select_tool_button, all_buttons)
-    ui.selected_item = "select_tool"
-    ui.current_tool = "tool"
-
-def on_select_remove_tool(remove_tool_button: ui_elements.ImagedButton, all_buttons: tuple, ui: UI) -> None:
-    mark_only_button(remove_tool_button, all_buttons)
-    ui.selected_item = "remove_tool"
-    ui.current_tool = "tool"
-
-def on_select_back_tool(actions: list, screen: pygame.Surface, camera: Camera) -> None:
-    if len(actions) > 0:
-        tile_before_act = actions[-1]["before"]
-        tile = actions[-1]["after"]
-        tile.type = tile_before_act.type
-        tile.stored_resource = tile_before_act.stored_resource
-        tile.stored_flag = tile_before_act.stored_flag
-        actions.pop(-1)
-        tile.draw(screen, camera)

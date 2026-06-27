@@ -4,6 +4,7 @@ import pygame
 
 import ui_elements
 from redactor_menu import RedactorMenu
+from settings_menu import SettingsMenu
 from config import user_config
 from sounds_manager import Sounds
 
@@ -18,6 +19,7 @@ class MainMenu:
         self.button_height: int = 70
 
         self.redactor_menu: RedactorMenu = RedactorMenu()
+        self.settings_menu: SettingsMenu = SettingsMenu()
 
         self._initialize_ui()
 
@@ -28,8 +30,8 @@ class MainMenu:
         self.title_rect = self.title.get_rect(center=(user_config.screen_width // 2, user_config.screen_height // 6))
 
         self.singleplayer_button = ui_elements.Button(
-            user_config.screen_width // 2 - self.button_width // 2,
-            user_config.screen_height // 3 - 40,
+            user_config.screen_width * 0.425,
+            user_config.screen_height * 0.3,
             self.button_width,
             self.button_height,
             "Singleplayer",
@@ -38,8 +40,8 @@ class MainMenu:
         )
 
         self.multiplayer_button = ui_elements.Button(
-            user_config.screen_width // 2 - self.button_width // 2,
-            user_config.screen_height // 3 + 50,
+            user_config.screen_width * 0.425,
+            user_config.screen_height * 0.39,
             self.button_width,
             self.button_height,
             "Multiplayer",
@@ -48,8 +50,8 @@ class MainMenu:
         )
 
         self.redactor_button = ui_elements.Button(
-            user_config.screen_width // 2 - self.button_width // 2,
-            user_config.screen_height // 3 + 140,
+            user_config.screen_width * 0.425,
+            user_config.screen_height * 0.48,
             self.button_width,
             self.button_height,
             "Map Redactor",
@@ -58,8 +60,8 @@ class MainMenu:
         )
 
         self.settings_button = ui_elements.Button(
-            user_config.screen_width // 2 - self.button_width // 2,
-            user_config.screen_height // 3 + 230,
+            user_config.screen_width * 0.425,
+            user_config.screen_height * 0.57,
             self.button_width,
             self.button_height,
             "Settings",
@@ -68,8 +70,8 @@ class MainMenu:
         )
 
         self.exit_button = ui_elements.Button(
-            user_config.screen_width // 2 - self.button_width // 2,
-            user_config.screen_height // 3 + 320,
+            user_config.screen_width * 0.425,
+            user_config.screen_height * 0.66,
             self.button_width,
             self.button_height,
             "Quit game",
@@ -131,7 +133,7 @@ class MainMenu:
 
                         if self.settings_button.is_clicked(mouse_pos, mouse_click):
                             Sounds.button_click.play()
-                            ...
+                            self.settings_menu.open_settings_menu(self.screen)
 
                         if self.exit_button.is_clicked(mouse_pos, mouse_click):
                             Sounds.button_click.play()

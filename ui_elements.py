@@ -69,25 +69,28 @@ class Fonts:
     font_for_maps_names: pygame.font = pygame.font.SysFont('tahoma', 19, bold = False)
     font_for_maps_delete: pygame.font = pygame.font.SysFont('tahoma', 60, bold=True)
     font_for_labels: pygame.font = pygame.font.SysFont('tahoma', 16, bold=True)
+    font_for_labels2: pygame.font = pygame.font.SysFont('tahoma', 18, bold=True)
     title_font: pygame.font = pygame.font.SysFont('tahoma', 90, bold=True)
 
 
 class Button:
     def __init__(self, x: float, y: float, width: float, height: float, text: str,
                  color: tuple[int, int, int], hover_color: tuple[int, int, int],
-                 font: pygame.Font = Fonts.font1) -> None:
+                 font: pygame.Font = Fonts.font1,
+                 border_radius: int = 12) -> None:
         self.rect: pygame.Rect = pygame.Rect(x, y, width, height)
         self.text: str = text
         self.color: tuple[int, int, int] = color
         self.hover_color: tuple[int, int, int] = hover_color
         self.is_hovered: bool = False
         self.font: pygame.Font = font
+        self.border_radius: int = border_radius
 
     def draw(self, screen: pygame.Surface) -> None:
         color = self.hover_color if self.is_hovered else self.color
 
-        pygame.draw.rect(screen, color, self.rect, border_radius=12)
-        pygame.draw.rect(screen, Colors.black, self.rect, 2, border_radius=12)
+        pygame.draw.rect(screen, color, self.rect, border_radius=self.border_radius)
+        pygame.draw.rect(screen, Colors.black, self.rect, 2, border_radius=self.border_radius)
 
         text_surface = self.font.render(self.text, True, Colors.black)
         text_rect = text_surface.get_rect(center=self.rect.center)
@@ -99,7 +102,6 @@ class Button:
 
     def is_clicked(self, pos: tuple[int, int], click: bool = True) -> bool:
         return self.rect.collidepoint(pos) and click
-
 
 class ImagedButton:
     def __init__(self, x: float, y: float, width: float, height: float,
@@ -289,7 +291,12 @@ class InputBox:
 
 
 class Dropdown:
-    def __init__(self, x: float, y: float, width: float, height: float, options: list, default_index: int=3, font_size: int=32, visible_items: int=5) -> None:
+    def __init__(self, x: float, y: float, width: float, height: float, options: list, default_index: int=3, font_size: int=32, visible_items: int=5,
+                 bg_color: tuple[int, int, int] = Colors.light_green1,
+                 hover_color: tuple[int, int, int] = Colors.light_green2,
+                 border_color: tuple[int, int, int] = Colors.dark_gray,
+                 text_color: tuple[int, int, int] = Colors.black,
+                 active_border_color: tuple[int, int, int] = Colors.dark_green) -> None:
         self.rect: pygame.Rect = pygame.Rect(x, y, width, height)
         self.item_rect: pygame.Rect = pygame.Rect(x, y + height * 4, width, height)
         self.options: list = options
@@ -308,11 +315,11 @@ class Dropdown:
         self.drag_start_scroll: float = 0
 
         self.item_height: float = height
-        self.bg_color: tuple[int, int, int] = Colors.light_green1
-        self.hover_color: tuple[int, int, int] = Colors.light_green2
-        self.border_color: tuple[int, int, int] = Colors.dark_gray
-        self.text_color: tuple[int, int, int] = Colors.black
-        self.active_border_color: tuple[int, int, int] = Colors.dark_green
+        self.bg_color: tuple[int, int, int] = bg_color
+        self.hover_color: tuple[int, int, int] = hover_color
+        self.border_color: tuple[int, int, int] = border_color
+        self.text_color: tuple[int, int, int] = text_color
+        self.active_border_color: tuple[int, int, int] = active_border_color
         self.scrollbar_color: tuple[int, int, int] = Colors.dark_gray
         self.scrollbar_hover_color: tuple[int, int, int] = Colors.gray
 
@@ -749,9 +756,6 @@ class VerticalSlider:
         return proportion * track_range
 
     def _pos_to_val(self, thumb_top):
-        """
-        Преобразует позицию верхнего края ползунка в значение (float).
-        """
         if self.max_val == self.min_val:
             return self.min_val
         track_range = self.rect.height - self.thumb_height
@@ -794,7 +798,6 @@ class VerticalSlider:
                 self.set_value(new_val)
 
     def draw_labels(self, surface):
-        """Рисует подписи целых значений справа от трека."""
         num_vals = (self.max_val - self.min_val) // self.step + 1
         label_x = self.rect.left + 2  # небольшой отступ справа
 

@@ -24,8 +24,8 @@ class CreateMapMenu:
         self.background = ui_elements.MenuBackground.load_background_image()
 
         self.map_size_dropdown = ui_elements.Dropdown(
-            user_config.screen_width // 2 - self.dropdown_width // 2,
-            user_config.screen_height // 3,
+            user_config.screen_width * 0.44,
+            user_config.screen_height * 0.332,
             self.dropdown_width,
             self.dropdown_height,
             self.map_size_dropdown_options,
@@ -34,8 +34,8 @@ class CreateMapMenu:
         )
 
         self.biome_dropdown = ui_elements.Dropdown(
-            user_config.screen_width // 2 - self.dropdown_width // 2,
-            user_config.screen_height // 2.6,
+            user_config.screen_width * 0.44,
+            user_config.screen_height * 0.385,
             self.dropdown_width,
             self.dropdown_height,
             self.biome_dropdown_options,
@@ -44,8 +44,8 @@ class CreateMapMenu:
         )
 
         self.create_button = ui_elements.Button(
-            user_config.screen_width // 2 - self.button_width // 2,
-            user_config.screen_height // 2 + 100,
+            user_config.screen_width * 0.425,
+            user_config.screen_height * 0.62,
             self.button_width,
             self.button_height,
             "Create Map",
@@ -54,8 +54,8 @@ class CreateMapMenu:
         )
 
         self.back_button = ui_elements.Button(
-            user_config.screen_width // 2 - self.button_width // 2,
-            user_config.screen_height // 2 + 200,
+            user_config.screen_width * 0.425,
+            user_config.screen_height * 0.71,
             self.button_width,
             self.button_height,
             "Back",
@@ -64,13 +64,13 @@ class CreateMapMenu:
         )
 
         self.title = ui_elements.Fonts.title_font.render("Create New Map", True, ui_elements.Colors.dark_golden)
-        self.title_rect = self.title.get_rect(center=(user_config.screen_width // 2, user_config.screen_height // 6))
+        self.title_rect = self.title.get_rect(center=(user_config.screen_width * 0.5, user_config.screen_height * 0.167))
 
         self.map_size_label = ui_elements.Fonts.font2.render("Map size", True, ui_elements.Colors.dark_green)
-        self.map_size_label_rect = self.map_size_label.get_rect(center=(user_config.screen_width // 2 - self.dropdown_width * 0.8, user_config.screen_height * 0.345,))
+        self.map_size_label_rect = self.map_size_label.get_rect(center=(user_config.screen_width * 0.408, user_config.screen_height * 0.345))
 
         self.biome_label = ui_elements.Fonts.font2.render("Biome", True, ui_elements.Colors.dark_green)
-        self.biome_label_rect = self.map_size_label.get_rect(center=(user_config.screen_width // 2 - self.dropdown_width * 0.8, user_config.screen_height * 0.398,))
+        self.biome_label_rect = self.map_size_label.get_rect(center=(user_config.screen_width * 0.408, user_config.screen_height * 0.398))
 
 
     def _initialize_updating_ui(self):
@@ -79,7 +79,7 @@ class CreateMapMenu:
 
         self.preview_button = ui_elements.ImagedButton(
             user_config.screen_width * 0.656,
-            user_config.screen_height // 3,
+            user_config.screen_height * 0.33,
             350,
             350,
             self.preview_image,
