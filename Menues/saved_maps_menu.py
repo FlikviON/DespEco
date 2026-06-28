@@ -7,8 +7,8 @@ import ui_elements
 from game_in_redactor_mode import GameInRedactorMode
 from config import user_config
 from map_manager import MapManager
-from rename_map_menu import RenameMapMenu
-from submit_delete_map_menu import SubmitDeleteMapMenu
+from Menues.rename_map_menu import RenameMapMenu
+from Menues.submit_delete_map_menu import SubmitDeleteMapMenu
 from sounds_manager import Sounds
 
 
@@ -16,6 +16,8 @@ class SavedMapsMenu:
     def __init__(self) -> None:
         self.button_width: int = 260
         self.button_height: int = 70
+
+        self.is_running: bool = False
 
         self.maps_directory: Path = Path("Saves")
         self.maps_names: list[str] = self._get_saved_maps_names()
@@ -82,7 +84,6 @@ class SavedMapsMenu:
 
     def _draw_ui(self, mouse_pos: tuple[int, int], screen: pygame.Surface) -> None:
         screen.blit(self.background, (0, 0))
-
         screen.blit(self.title, self.title_rect)
 
         self.maps_optionbox.draw(screen)
@@ -137,8 +138,8 @@ class SavedMapsMenu:
 
     def open_saved_maps_menu(self, screen: pygame.Surface) -> None:
         clock = pygame.time.Clock()
-        is_running = True
-        while is_running:
+        self.is_running = True
+        while self.is_running:
             mouse_pos = pygame.mouse.get_pos()
             self._draw_ui(mouse_pos, screen)
 
@@ -151,7 +152,7 @@ class SavedMapsMenu:
 
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
-                        is_running = False
+                        self.is_running = False
 
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 1:
@@ -169,7 +170,7 @@ class SavedMapsMenu:
 
                         elif self.back_button.is_clicked(mouse_pos, mouse_click):
                             Sounds.button_click.play()
-                            is_running = False
+                            self.is_running = False
 
             pygame.display.flip()
             clock.tick(60)

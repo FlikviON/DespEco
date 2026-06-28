@@ -3,8 +3,10 @@ import sys
 import pygame
 
 import ui_elements
-from redactor_menu import RedactorMenu
-from settings_menu import SettingsMenu
+from Menues.multiplayer_menu import MultiplayerMenu
+from Menues.redactor_menu import RedactorMenu
+from Menues.settings_menu import SettingsMenu
+from Menues.singleplayer_menu import SingleplayerMenu
 from config import user_config
 from sounds_manager import Sounds
 
@@ -18,6 +20,10 @@ class MainMenu:
         self.button_width: int = 260
         self.button_height: int = 70
 
+        self.is_running: bool = False
+
+        self.singleplayer_menu: SingleplayerMenu = SingleplayerMenu()
+        self.multiplayer_menu: MultiplayerMenu = MultiplayerMenu()
         self.redactor_menu: RedactorMenu = RedactorMenu()
         self.settings_menu: SettingsMenu = SettingsMenu()
 
@@ -81,7 +87,6 @@ class MainMenu:
 
     def _draw_ui(self, mouse_pos: tuple[int, int], screen: pygame.Surface) -> None:
         self.screen.blit(self.background, (0, 0))
-
         self.screen.blit(self.title, self.title_rect)
 
         self.singleplayer_button.check_hover(mouse_pos)
@@ -101,8 +106,8 @@ class MainMenu:
 
     def open_main_menu(self) -> None:
         clock = pygame.time.Clock()
-        is_running = True
-        while is_running:
+        self.is_running = True
+        while self.is_running:
             mouse_pos = pygame.mouse.get_pos()
             self._draw_ui(mouse_pos, self.screen)
 
@@ -113,7 +118,7 @@ class MainMenu:
 
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
-                        is_running = False
+                        self.is_running = False
 
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 1:
@@ -121,11 +126,11 @@ class MainMenu:
 
                         if self.singleplayer_button.is_clicked(mouse_pos, mouse_click):
                             Sounds.button_click.play()
-                            ...
+                            self.singleplayer_menu.open_singleplayer_menu(self.screen)
 
                         if self.multiplayer_button.is_clicked(mouse_pos, mouse_click):
                             Sounds.button_click.play()
-                            ...
+                            self.multiplayer_menu.open_multiplayer_menu(self.screen)
 
                         if self.redactor_button.is_clicked(mouse_pos, mouse_click):
                             Sounds.button_click.play()

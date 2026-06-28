@@ -4,8 +4,8 @@ import pygame
 
 import ui_elements
 from config import user_config
-from create_map_menu import CreateMapMenu
-from saved_maps_menu import SavedMapsMenu
+from Menues.create_map_menu import CreateMapMenu
+from Menues.saved_maps_menu import SavedMapsMenu
 from sounds_manager import Sounds
 
 
@@ -13,6 +13,8 @@ class RedactorMenu:
     def __init__(self) -> None:
         self.button_width: int = 260
         self.button_height: int = 70
+
+        self.is_running: bool = False
 
         self.saved_maps_menu: SavedMapsMenu = SavedMapsMenu()
         self.create_map_menu: CreateMapMenu = CreateMapMenu()
@@ -57,7 +59,6 @@ class RedactorMenu:
 
     def _draw_ui(self, mouse_pos: tuple[int, int], screen: pygame.Surface) -> None:
         screen.blit(self.background, (0, 0))
-
         screen.blit(self.title, self.title_rect)
 
         self.create_map_button.check_hover(mouse_pos)
@@ -71,8 +72,8 @@ class RedactorMenu:
 
     def open_redactor_menu(self, screen: pygame.Surface) -> None:
         clock = pygame.time.Clock()
-        is_running = True
-        while is_running:
+        self.is_running = True
+        while self.is_running:
             mouse_pos = pygame.mouse.get_pos()
             self._draw_ui(mouse_pos, screen)
 
@@ -83,7 +84,7 @@ class RedactorMenu:
 
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
-                        is_running = False
+                        self.is_running = False
 
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 1:
@@ -99,7 +100,7 @@ class RedactorMenu:
 
                         if self.back_button.is_clicked(mouse_pos, mouse_click):
                             Sounds.button_click.play()
-                            is_running = False
+                            self.is_running = False
 
                 pygame.display.flip()
                 clock.tick(60)

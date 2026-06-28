@@ -1,4 +1,4 @@
-from main_menu import MainMenu
+from Menues.main_menu import MainMenu
 
 
 def main() -> None:

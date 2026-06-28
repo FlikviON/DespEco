@@ -13,6 +13,8 @@ class SettingsMenu:
         self.button_width: int = 260
         self.button_height: int = 70
 
+        self.is_running: bool = True
+
         self.button_for_section_width: int = 120
         self.button_for_section_height: int = 40
 
@@ -160,8 +162,8 @@ class SettingsMenu:
 
     def open_settings_menu(self, screen: pygame.Surface) -> None:
         clock = pygame.time.Clock()
-        is_running = True
-        while is_running:
+        self.is_running = True
+        while self.is_running:
             mouse_pos = pygame.mouse.get_pos()
             self._draw_ui(mouse_pos, screen)
 
@@ -172,7 +174,7 @@ class SettingsMenu:
 
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
-                        is_running = False
+                        self.is_running = False
 
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 1:
@@ -187,7 +189,7 @@ class SettingsMenu:
 
                         if self.back_button.is_clicked(mouse_pos, mouse_click):
                             Sounds.button_click.play()
-                            is_running = False
+                            self.is_running = False
 
                 pygame.display.flip()
                 clock.tick(60)

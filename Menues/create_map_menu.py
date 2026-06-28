@@ -17,11 +17,16 @@ class CreateMapMenu:
         self.map_size_dropdown_options: list[str] = [f"{16 * i}x{16 * i}" for i in range(1, 65)]
         self.biome_dropdown_options: list[str] = ["Meadows", "Mountains", "Water", "Desert", "Tundra", "Swamp"]
 
+        self.is_running: bool = False
+
         self._initialize_ui()
-        self._initialize_updating_ui()
+        self._initialize_changeable_ui()
 
     def _initialize_ui(self) -> None:
         self.background = ui_elements.MenuBackground.load_background_image()
+
+        self.title = ui_elements.Fonts.title_font.render("Create New Map", True, ui_elements.Colors.dark_golden)
+        self.title_rect = self.title.get_rect(center=(user_config.screen_width * 0.5, user_config.screen_height * 0.167))
 
         self.map_size_dropdown = ui_elements.Dropdown(
             user_config.screen_width * 0.44,
@@ -63,9 +68,6 @@ class CreateMapMenu:
             ui_elements.Colors.hover_red
         )
 
-        self.title = ui_elements.Fonts.title_font.render("Create New Map", True, ui_elements.Colors.dark_golden)
-        self.title_rect = self.title.get_rect(center=(user_config.screen_width * 0.5, user_config.screen_height * 0.167))
-
         self.map_size_label = ui_elements.Fonts.font2.render("Map size", True, ui_elements.Colors.dark_green)
         self.map_size_label_rect = self.map_size_label.get_rect(center=(user_config.screen_width * 0.408, user_config.screen_height * 0.345))
 
@@ -73,7 +75,7 @@ class CreateMapMenu:
         self.biome_label_rect = self.map_size_label.get_rect(center=(user_config.screen_width * 0.408, user_config.screen_height * 0.398))
 
 
-    def _initialize_updating_ui(self):
+    def _initialize_changeable_ui(self):
         self.preview_image = f"Assets/MapPreviews/{self.biome_dropdown.get_selected_option()}_map.png"
         width = height = self.map_size_dropdown.get_selected_value()
 
@@ -97,15 +99,10 @@ class CreateMapMenu:
 
     def _draw_ui(self, mouse_pos: tuple[int, int], screen: pygame.Surface) -> None:
         screen.blit(self.background, (0, 0))
-
         screen.blit(self.title, self.title_rect)
-
         screen.blit(self.map_size_label, self.map_size_label_rect)
-
         screen.blit(self.biome_label, self.biome_label_rect)
-
         screen.blit(self.height_label, self.height_label_rect)
-
         screen.blit(self.width_label, self.width_label_rect)
 
         self.create_button.check_hover(mouse_pos)
@@ -134,14 +131,15 @@ class CreateMapMenu:
             Sounds.button_click.play()
             width = height = self.map_size_dropdown.get_selected_value()
             start_biome = self.biome_dropdown.get_selected_option()
-            GameInRedactorMode(width, height, start_biome).start_game()
+            game_in_redactor_mode = GameInRedactorMode(width, height, start_biome)
+            game_in_redactor_mode.start_game()
 
     def open_create_map_menu(self, screen: pygame.Surface) -> None:
         clock = pygame.time.Clock()
-        is_running = True
-        while is_running:
+        self.is_running = True
+        while self.is_running:
             mouse_pos = pygame.mouse.get_pos()
-            self._initialize_updating_ui()
+            self._initialize_changeable_ui()
             self._draw_ui(mouse_pos, screen)
 
             for event in pygame.event.get():
@@ -151,14 +149,14 @@ class CreateMapMenu:
 
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
-                        is_running = False
+                        self.is_running = False
 
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 1:
                         self._on_mouse_click(event, mouse_pos)
                         if self.back_button.is_clicked(mouse_pos, True):
                             Sounds.button_click.play()
-                            is_running = False
+                            self.is_running = False
 
                     elif event.button == 4 or event.button == 5:
                         self.map_size_dropdown.handle_event(event)
